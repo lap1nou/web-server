@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "webserver"
+version = "1.0"
+description = "webserver is a TUI that can be used to easily spawn a manager webserver files."
+authors = ["lap1nou"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+rich  = "^14.2.0"
+textual = "^6.6.0"
+pyperclip = "^1.9.0"
+psutil = "^7.1.3"
+
+[tool.poetry.scripts]
+exegol-history="webserver.__main__:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "8.3.4"
+pytest-asyncio = "0.25.2"
+pytest-cov = "6.1.1"
+textual-dev = "1.7.0"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"webserver/tests/*" = ["F811"]
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=webserver"
+
+[tool.coverage.run]
+omit = [ "webserver/tests/*", "webserver/__main__.py" ]
+
+[tool.coverage.report]
+show_missing = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,15 @@
+[hooks]
+enter = "mise i -q && poetry install"
+
+[tools]
+ruff = "latest"
+python = "3.13"
+"pipx:poetry" = "2.2.1"
+
+[tasks]
+lint = "ruff format . && ruff check . --fix"
+test = "poetry run pytest"
+run = '''
+echo "[*] Please run the 'poetry run textual console -x EVENT -x DEBUG -x SYSTEM' command"
+poetry run textual run --dev web-server.py
+'''
