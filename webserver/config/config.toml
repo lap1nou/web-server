@@ -1,9 +1,0 @@
-[profiles.hackthebox]
-interface = "tun0"
-port = 80
-directory = "/opt/resources/"
-
-[profiles.pentest]
-interface = "eth0"
-port = 80
-directory = "/opt/resources/"
