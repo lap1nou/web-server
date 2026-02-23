@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "webserver"
+name = "web_server"
 version = "1.0"
 description = "webserver is a TUI that can be used to easily spawn a manager webserver files."
 authors = ["lap1nou"]
@@ -12,7 +12,7 @@ pyperclip = "^1.9.0"
 psutil = "^7.1.3"
 
 [tool.poetry.scripts]
-exegol-history="webserver.__main__:main"
+web_server="webserver.__main__:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.3.4"

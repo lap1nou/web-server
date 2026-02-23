@@ -21,7 +21,6 @@ from textual.containers import (
     Vertical,
 )
 from textual.validation import Number
-from webserver.config.config import AppConfig
 from webserver.tui.screens.open_folder import OpenFileScreen
 from webserver.tui.screens.show_logs import ShowLogsScreen
 from webserver.tui.utils import (
@@ -59,28 +58,30 @@ class TUI(App):
     ]
     ENABLE_COMMAND_PALETTE = False
 
-    def __init__(self, args):
+    def __init__(self, args, config):
         self.CSS_PATH = "css/general.tcss"
         super().__init__()
         self.args = args
-        self.title = f"🕸️ Web server v{importlib.metadata.version('webserver')}"
+        self.title = f"🕸️ Web server v{importlib.metadata.version('web_server')}"
         self.webserver = None
-        self.config = AppConfig().config
+        self.config = config
 
     def compose(self) -> ComposeResult:
-        print(self.config["profiles"].items())
         switch_webserver = Switch()
 
         input_web_directory = BorderedInput(
             border_title="Web directory",
             placeholder="e.g: /opt/resources/",
             id=INPUT_WEB_DIRECTORY,
+            value=self.args.directory,
         )
         input_port = BorderedInput(
             border_title="Port",
             placeholder="8080",
             validators=[Number(minimum=1, maximum=65535)],
             id=INPUT_PORT,
+            type="integer",
+            value=str(self.args.port),
         )
         input_target_path = BorderedInput(
             border_title="Target path",
@@ -94,6 +95,12 @@ class TUI(App):
         vertical_files = Vertical(id="vertical_files")
         vertical_files.border_title = "Files"
 
+        select_profile = Select(
+            prompt="Profile",
+            options=[(key, key) for key in self.config["profiles"].keys()],
+            id=SELECT_PROFILE,
+        )
+
         yield Header()
 
         with Horizontal():
@@ -103,11 +110,7 @@ class TUI(App):
                 )
             with VerticalScroll():
                 with vertical_group_config:
-                    yield Select(
-                        prompt="Profile",
-                        options=[(key, key) for key in self.config["profiles"].keys()],
-                        id=SELECT_PROFILE,
-                    )
+                    yield select_profile
                     with HorizontalGroup():
                         yield Label("on/off", id=LABEL_SWITCH)
                         yield switch_webserver
@@ -122,6 +125,7 @@ class TUI(App):
                             prompt="Listening interface",
                             options=get_network_interfaces(),
                             id=SELECT_INTERFACE,
+                            value="127.0.0.1",
                         )
                 yield input_target_path
                 yield Select(
@@ -137,6 +141,18 @@ class TUI(App):
         yield Rule(line_style="heavy")
         yield Input(placeholder="🔍 Search...", id=INPUT_SEARCH_BAR)
         yield Footer()
+
+    def on_mount(self) -> None:
+        if self.args.profile:
+            try:
+                select_profile = self.screen.query_one(f"#{SELECT_PROFILE}", Select)
+                select_profile.value = self.args.profile
+            except Exception:
+                pass
+
+        if self.args.auto:
+            switch_webserver = self.screen.query_one(Switch)
+            switch_webserver.toggle()
 
     def on_switch_changed(self, event: Switch.Changed):
         global IS_SERVER_RUNNING
