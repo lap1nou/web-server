@@ -9,10 +9,5 @@ python = "3.13"
 [tasks]
 lint = "ruff format . && ruff check . --fix"
 test = "poetry run pytest"
-
-[tasks.debug]
-description = ""
-run = '''
-echo "[*] Please run the 'poetry run textual console -x EVENT -x DEBUG -x SYSTEM' command"
-poetry run textual run --dev web_server.py
-'''
+console = "poetry run textual console -x EVENT -x DEBUG -x SYSTEM"
+debug = "poetry run textual run --dev web-server.py"

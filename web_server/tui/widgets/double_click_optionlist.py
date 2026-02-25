@@ -1,10 +1,8 @@
-from textual.widgets import (
-    ListItem,
-)
+from textual.widgets import OptionList
 
 
 # Reference: https://github.com/davidfokkema
-class DoubleClickListItem(ListItem):
+class DoubleClickOptionList(OptionList):
     def _on_click(self, event):
         if event.chain == 1:
             event.prevent_default()

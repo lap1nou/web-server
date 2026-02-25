@@ -60,13 +60,13 @@ def generate_download_command(
         return ""
 
 
-def get_files_list(root: str):
-    root = Path(root)
+def get_files_list(root: str, search: str = "*"):
     files = []
 
-    for file in root.rglob("*"):
-        if file.is_file():
-            files.append(file.relative_to(root))
+    # When Python 3.12 available, use case_sensitive=False
+    for path in Path(root).rglob(search, case_sensitive=False):
+        if path.is_file() and ".git" not in path.parts:
+            files.append(str(path.relative_to(root)))
 
     return files
 
