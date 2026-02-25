@@ -190,12 +190,13 @@ class TUI(App):
     def on_path_selected(self, event: OptionList.OptionSelected):
         command_id = self.screen.query_one(f"#{SELECT_COMMAND_ID}", Select)
         ip = self.screen.query_one(f"#{SELECT_INTERFACE}").value
+        port = self.screen.query_one(f"#{INPUT_PORT}").value
         target_path = self.screen.query_one(f"#{INPUT_TARGET_PATH}").value
 
         if command_id.is_blank():
             return
 
-        web_path = f"http://{ip}:{self.args.port}/{event.option.prompt}"
+        web_path = f"http://{ip}:{port}/{event.option.prompt}"
         copy_in_clipboard(
             generate_download_command(
                 DownloaderType(command_id.value), web_path, target_path
