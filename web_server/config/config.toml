@@ -1,9 +1,17 @@
 [profiles.hackthebox]
+type = "webserver"
 interface = "tun0"
 port = 80
 directory = "/opt/resources/"
 
 [profiles.pentest]
+type = "webserver"
+interface = "eth0"
+port = 80
+directory = "/opt/resources/"
+
+[profiles.updog_pentest]
+type = "updog"
 interface = "eth0"
 port = 80
 directory = "/opt/resources/"

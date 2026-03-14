@@ -16,6 +16,12 @@ class DownloaderType(Enum):
     CERTUTIL = 6
 
 
+class ServerType(Enum):
+    WEBSERVER = "webserver"
+    UPDOG = "updog"
+    GOSHS = "goshs"
+
+
 def copy_in_clipboard(input: str):
     # Reference:
     # https://stackoverflow.com/questions/48499398/how-to-run-a-process-and-quit-after-the-script-is-over
@@ -78,5 +84,7 @@ def get_network_interfaces() -> list[tuple[str, str]]:
         for address in addresses:
             if address.family == AddressFamily.AF_INET:
                 interfaces.append((interface_name, address.address))
+
+    interfaces.append(("all", "0.0.0.0"))
 
     return interfaces

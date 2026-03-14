@@ -16,3 +16,39 @@ class AppConfig:
 
         with open(config_path, "rb") as config_file:
             self.config = tomllib.load(config_file)
+
+
+class ConfigWebserver:
+    def __init__(
+        self,
+        type: str = "webserver",
+        interface: str = "127.0.0.1",
+        port: int = 8080,
+        directory: str = None,
+    ):
+        self.type = "webserver"
+        self.interface = interface
+        self.port = port
+        self.directory = directory
+
+
+class ConfigUpdog:
+    def __init__(
+        self,
+        type: str = "updog",
+        interface: str = "127.0.0.1",
+        port: int = 8080,
+        directory: str = None,
+        password: str = None,
+    ):
+        self.type = "updog"
+        self.interface = interface
+        self.port = port
+        self.directory = directory
+        self.password = password
+
+
+class ConfigGoshs:
+    def __init__(self, type: str = "goshs", config_file: str = None):
+        self.type = "goshs"
+        self.config_file = config_file

@@ -19,11 +19,12 @@ from textual.containers import (
     Horizontal,
     Vertical,
 )
-from textual.validation import Number
+from web_server.config.config import ConfigGoshs, ConfigUpdog, ConfigWebserver
 from web_server.tui.screens.open_folder import OpenFileScreen
 from web_server.tui.screens.show_logs import ShowLogsScreen
 from web_server.tui.utils import (
     DownloaderType,
+    ServerType,
     copy_in_clipboard,
     generate_download_command,
     get_files_list,
@@ -31,6 +32,10 @@ from web_server.tui.utils import (
 )
 from web_server.tui.widgets.bordered_input import BorderedInput
 from web_server.tui.widgets.double_click_optionlist import DoubleClickOptionList
+from web_server.tui.widgets.goshs_form import GoshsForm
+from web_server.tui.widgets.updog_form import UpdogForm
+from web_server.tui.widgets.webserver_form import WebServerForm
+from web_server.updog_server import UpdogServer
 from web_server.webserver import WebServer
 from textual.keys import Keys
 from textual.binding import Binding
@@ -46,8 +51,11 @@ BUTTON_BROWSE_FILE = "button_browse_file"
 BUTTON_SHOW_LOGS = "button_show_logs"
 SELECT_PROFILE = "select_profile"
 SELECT_INTERFACE = "select_interface"
+SELECT_SERVER_TYPE = "select_server_type"
 SELECT_COMMAND_ID = "select_command_id"
 OPTIONLIST_FILES = "optionlist_files"
+SERVER_FORM = "server_form"
+HORIZONTAL_GROUP_SERVER_CONFIG = "horizontal_group_server_config"
 
 
 class TUI(App):
@@ -63,25 +71,12 @@ class TUI(App):
         self.args = args
         self.title = f"🕸️ Web server v{importlib.metadata.version('web_server')}"
         self.webserver = None
+        self.selected_config = None
         self.config = config
 
     def compose(self) -> ComposeResult:
         switch_webserver = Switch()
 
-        input_web_directory = BorderedInput(
-            border_title="Web directory",
-            placeholder="e.g: /opt/resources/",
-            id=INPUT_WEB_DIRECTORY,
-            value=self.args.directory,
-        )
-        input_port = BorderedInput(
-            border_title="Port",
-            placeholder="8080",
-            validators=[Number(minimum=1, maximum=65535)],
-            id=INPUT_PORT,
-            type="integer",
-            value=str(self.args.port),
-        )
         input_target_path = BorderedInput(
             border_title="Target path",
             placeholder="e.g: C:\\Users\\Public\\",
@@ -108,22 +103,22 @@ class TUI(App):
             with VerticalScroll():
                 with vertical_group_config:
                     yield select_profile
-                    with HorizontalGroup():
+                    with HorizontalGroup(id=HORIZONTAL_GROUP_SERVER_CONFIG):
                         yield Label("on/off", id=LABEL_SWITCH)
                         yield switch_webserver
                         yield HorizontalGroup()
                         yield Button("Logs", id=BUTTON_SHOW_LOGS)
-                    with HorizontalGroup():
-                        yield input_web_directory
-                        yield Button("📁", id=BUTTON_BROWSE_FILE)
-                    with HorizontalGroup():
-                        yield input_port
-                        yield Select(
-                            prompt="Listening interface",
-                            options=get_network_interfaces(),
-                            id=SELECT_INTERFACE,
-                            value="127.0.0.1",
-                        )
+                    yield Select(
+                        id=SELECT_SERVER_TYPE,
+                        allow_blank=False,
+                        options=[
+                            (server_type.name, server_type.value)
+                            for server_type in ServerType
+                        ],
+                    )
+                    yield WebServerForm(
+                        SERVER_FORM, ConfigWebserver(ServerType.WEBSERVER)
+                    )
                 yield input_target_path
                 yield Select(
                     allow_blank=False,
@@ -163,9 +158,11 @@ class TUI(App):
             return
 
         if not IS_SERVER_RUNNING:
-            self.webserver = WebServer(
-                host=ip.value, port=int(port.value), directory=web_directory
-            )
+            if self.selected_config.type == ServerType.WEBSERVER.value:
+                self.webserver = WebServer(self.selected_config)
+            elif self.selected_config.type == ServerType.UPDOG.value:
+                self.webserver = UpdogServer(self.selected_config)
+
             self.webserver.start()
 
             web_directory = self.screen.query_one(
@@ -232,26 +229,82 @@ class TUI(App):
                 select_web_directory,
             )
         elif event.button.id == BUTTON_SHOW_LOGS and self.webserver:
-            self.app.push_screen(ShowLogsScreen(self.webserver.server))
+            self.app.push_screen(ShowLogsScreen(self.webserver))
 
-    def on_select_changed(self, event: Select.Changed):
-        if event.select.id == SELECT_PROFILE:
-            selected_profile = event.select.selection
-            selected_config = self.config["profiles"][selected_profile]
+    async def on_select_changed(self, event: Select.Changed):
+        if event.select.id == SELECT_PROFILE and event.select.selection:
+            selected_config = self.config["profiles"][event.select.selection]
+            profile_type = selected_config["type"]
+            select_server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select)
 
-            select_interface = self.query_one(f"#{SELECT_INTERFACE}", Select)
-            network_interfaces = get_network_interfaces()
-
-            for interface in network_interfaces:
+            for interface in get_network_interfaces():
                 if selected_config["interface"] == interface[0]:
-                    select_interface.value = interface[1]
+                    selected_config["interface"] = interface[1]
                     break
 
-            input_port = self.query_one(f"#{INPUT_PORT}", Input)
-            input_port.value = str(selected_config["port"])
+            if profile_type == ServerType.WEBSERVER.value:
+                with self.prevent(Select.Changed):
+                    # Do not trigger changed event, otherwise this will
+                    # erase the profile
+                    select_server_type.value = ServerType.WEBSERVER.value
 
-            input_directory = self.query_one(f"#{INPUT_WEB_DIRECTORY}", Input)
-            input_directory.value = selected_config["directory"]
+                self.selected_config = ConfigWebserver(**selected_config)
+
+                form = self.query_one(f"#{SERVER_FORM}")
+                await form.remove()
+                await self.mount(
+                    WebServerForm(SERVER_FORM, self.selected_config),
+                    after=f"#{SELECT_SERVER_TYPE}",
+                )
+            elif profile_type == ServerType.UPDOG.value:
+                with self.prevent(Select.Changed):
+                    select_server_type.value = ServerType.UPDOG.value
+
+                self.selected_config = ConfigUpdog(**selected_config)
+
+                form = self.query_one(f"#{SERVER_FORM}")
+                await form.remove()
+                await self.mount(
+                    UpdogForm(SERVER_FORM, self.selected_config),
+                    after=f"#{SELECT_SERVER_TYPE}",
+                )
+            elif profile_type == ServerType.GOSHS.value:
+                with self.prevent(Select.Changed):
+                    select_server_type.value = ServerType.GOSHS.value
+
+                self.selected_config = ConfigGoshs(**selected_config)
+
+                form = self.query_one(f"#{SERVER_FORM}")
+                await form.remove()
+                await self.mount(
+                    GoshsForm(SERVER_FORM, self.selected_config),
+                    after=f"#{SELECT_SERVER_TYPE}",
+                )
+        elif event.select.id == SELECT_SERVER_TYPE:
+            profile_type = event.select.selection
+            self.selected_config = None
+
+            if profile_type == ServerType.WEBSERVER.value:
+                form = self.query_one(f"#{SERVER_FORM}")
+                await form.remove()
+                await self.mount(
+                    WebServerForm(SERVER_FORM, ConfigWebserver()),
+                    after=f"#{SELECT_SERVER_TYPE}",
+                )
+            elif profile_type == ServerType.UPDOG.value:
+                form = self.query_one(f"#{SERVER_FORM}")
+                await form.remove()
+                await self.mount(
+                    UpdogForm(SERVER_FORM, ConfigUpdog()),
+                    after=f"#{SELECT_SERVER_TYPE}",
+                )
+            elif profile_type == ServerType.GOSHS.value:
+                form = self.query_one(f"#{SERVER_FORM}")
+                await form.remove()
+                await self.mount(
+                    GoshsForm(SERVER_FORM, ConfigGoshs()),
+                    after=f"#{SELECT_SERVER_TYPE}",
+                )
 
     def action_custom_exit(self):
         if IS_SERVER_RUNNING:
