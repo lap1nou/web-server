@@ -4,7 +4,7 @@ from textual.containers import (
     HorizontalGroup,
 )
 from textual.validation import Number
-from web_server.config.config import ConfigWebserver
+from web_server.config.config import ConfigServer
 from web_server.tui.utils import get_network_interfaces
 from web_server.tui.widgets.bordered_input import BorderedInput
 
@@ -15,18 +15,16 @@ BUTTON_BROWSE_FILE = "button_browse_file"
 
 
 class WebServerForm(Static):
-    def __init__(self, id: str = None, config: ConfigWebserver = None):
+    def __init__(self, id: str = None, config: ConfigServer = None):
         super().__init__(id=id)
-        self.interface = config.interface
-        self.directory = config.directory
-        self.port = config.port
+        self.config = config
 
     def compose(self) -> ComposeResult:
         input_web_directory = BorderedInput(
             border_title="Web directory",
             placeholder="e.g: /opt/resources/",
             id=INPUT_WEB_DIRECTORY,
-            value=self.directory,
+            value=self.config.directory,
         )
         input_port = BorderedInput(
             border_title="Port",
@@ -34,7 +32,7 @@ class WebServerForm(Static):
             validators=[Number(minimum=1, maximum=65535)],
             id=INPUT_PORT,
             type="integer",
-            value=str(self.port),
+            value=str(self.config.port),
         )
 
         with HorizontalGroup():
@@ -46,5 +44,5 @@ class WebServerForm(Static):
                 prompt="Listening interface",
                 options=get_network_interfaces(),
                 id=SELECT_INTERFACE,
-                value=self.interface,
+                value=self.config.interface[1],
             )

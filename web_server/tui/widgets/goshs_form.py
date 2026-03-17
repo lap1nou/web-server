@@ -9,6 +9,7 @@ from web_server.tui.widgets.bordered_input import BorderedInput
 INPUT_GOSHS_CONFIG = "input_goshs_config"
 BUTTON_BROWSE_FILE = "button_browse_file"
 
+
 class GoshsForm(Static):
     def __init__(self, id: str = None, config: ConfigGoshs = None):
         super().__init__(id=id)

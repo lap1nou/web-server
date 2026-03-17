@@ -88,3 +88,15 @@ def get_network_interfaces() -> list[tuple[str, str]]:
     interfaces.append(("all", "0.0.0.0"))
 
     return interfaces
+
+
+def find_interface_by_name(interface_name: str) -> str:
+    for interface in get_network_interfaces():
+        if interface_name == interface[0]:
+            return interface
+
+
+def find_interface_by_ip(interface_ip: str) -> str:
+    for interface in get_network_interfaces():
+        if interface_ip == interface[1]:
+            return interface

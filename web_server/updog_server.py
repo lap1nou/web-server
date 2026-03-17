@@ -6,7 +6,7 @@ from web_server.config.config import ConfigUpdog
 
 class UpdogServer:
     def __init__(self, config: ConfigUpdog = None):
-        self.host = config.host
+        self.host = config.interface[1]
         self.port = config.port
         self.directory = config.directory
         self.password = config.password

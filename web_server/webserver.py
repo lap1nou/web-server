@@ -1,7 +1,7 @@
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import threading
 import queue
-from web_server.config.config import ConfigWebserver
+from web_server.config.config import ConfigServer
 
 
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
@@ -13,11 +13,11 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
 
 
 class WebServer:
-    def __init__(self, config: ConfigWebserver = None):
+    def __init__(self, config: ConfigServer = None):
         def handler(*args, **kwargs):
             return CustomHTTPRequestHandler(*args, directory=config.directory, **kwargs)
 
-        self.server = ThreadingHTTPServer((config.host, config.port), handler)
+        self.server = ThreadingHTTPServer((config.interface[1], config.port), handler)
         self.server.logs = queue.Queue()
         self.thread = threading.Thread(target=self.server.serve_forever)
 

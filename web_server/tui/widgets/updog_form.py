@@ -18,17 +18,14 @@ BUTTON_BROWSE_FILE = "button_browse_file"
 class UpdogForm(Static):
     def __init__(self, id: str = None, config: ConfigUpdog = None):
         super().__init__(id=id)
-        self.interface = config.interface
-        self.directory = config.directory
-        self.port = config.port
-        self.password = config.password
+        self.config = config
 
     def compose(self) -> ComposeResult:
         input_web_directory = BorderedInput(
             border_title="Web directory",
             placeholder="e.g: /opt/resources/",
             id=INPUT_WEB_DIRECTORY,
-            value=self.directory,
+            value=self.config.directory,
         )
         input_port = BorderedInput(
             border_title="Port",
@@ -36,13 +33,13 @@ class UpdogForm(Static):
             validators=[Number(minimum=1, maximum=65535)],
             id=INPUT_PORT,
             type="integer",
-            value=str(self.port),
+            value=str(self.config.port),
         )
         input_password = BorderedInput(
             border_title="Password",
             placeholder="Password123!",
             id=INPUT_PASSWORD,
-            value=self.password,
+            value=self.config.password,
             password=True,
         )
 
@@ -55,7 +52,7 @@ class UpdogForm(Static):
                 prompt="Listening interface",
                 options=get_network_interfaces(),
                 id=SELECT_INTERFACE,
-                value=self.interface,
+                value=self.config.interface[1],
             )
         with HorizontalGroup():
             yield input_password

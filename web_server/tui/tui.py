@@ -1,4 +1,5 @@
 import importlib.metadata
+import pathlib
 from textual.app import App, ComposeResult
 from textual import on
 from textual.widgets import (
@@ -19,7 +20,12 @@ from textual.containers import (
     Horizontal,
     Vertical,
 )
-from web_server.config.config import ConfigGoshs, ConfigUpdog, ConfigWebserver
+from web_server.config import config
+from web_server.config.config import (
+    ConfigGoshs,
+    ConfigServer,
+    ConfigUpdog,
+)
 from web_server.tui.screens.open_folder import OpenFileScreen
 from web_server.tui.screens.show_logs import ShowLogsScreen
 from web_server.tui.utils import (
@@ -116,9 +122,7 @@ class TUI(App):
                             for server_type in ServerType
                         ],
                     )
-                    yield WebServerForm(
-                        SERVER_FORM, ConfigWebserver(ServerType.WEBSERVER)
-                    )
+                    yield WebServerForm(SERVER_FORM, ConfigServer(ServerType.WEBSERVER))
                 yield input_target_path
                 yield Select(
                     allow_blank=False,
@@ -233,78 +237,99 @@ class TUI(App):
 
     async def on_select_changed(self, event: Select.Changed):
         if event.select.id == SELECT_PROFILE and event.select.selection:
-            selected_config = self.config["profiles"][event.select.selection]
-            profile_type = selected_config["type"]
-            select_server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select)
-
-            for interface in get_network_interfaces():
-                if selected_config["interface"] == interface[0]:
-                    selected_config["interface"] = interface[1]
-                    break
-
-            if profile_type == ServerType.WEBSERVER.value:
-                with self.prevent(Select.Changed):
-                    # Do not trigger changed event, otherwise this will
-                    # erase the profile
-                    select_server_type.value = ServerType.WEBSERVER.value
-
-                self.selected_config = ConfigWebserver(**selected_config)
-
-                form = self.query_one(f"#{SERVER_FORM}")
-                await form.remove()
-                await self.mount(
-                    WebServerForm(SERVER_FORM, self.selected_config),
-                    after=f"#{SELECT_SERVER_TYPE}",
-                )
-            elif profile_type == ServerType.UPDOG.value:
-                with self.prevent(Select.Changed):
-                    select_server_type.value = ServerType.UPDOG.value
-
-                self.selected_config = ConfigUpdog(**selected_config)
-
-                form = self.query_one(f"#{SERVER_FORM}")
-                await form.remove()
-                await self.mount(
-                    UpdogForm(SERVER_FORM, self.selected_config),
-                    after=f"#{SELECT_SERVER_TYPE}",
-                )
-            elif profile_type == ServerType.GOSHS.value:
-                with self.prevent(Select.Changed):
-                    select_server_type.value = ServerType.GOSHS.value
-
-                self.selected_config = ConfigGoshs(**selected_config)
-
-                form = self.query_one(f"#{SERVER_FORM}")
-                await form.remove()
-                await self.mount(
-                    GoshsForm(SERVER_FORM, self.selected_config),
-                    after=f"#{SELECT_SERVER_TYPE}",
-                )
+            await self.select_profile(event)
         elif event.select.id == SELECT_SERVER_TYPE:
-            profile_type = event.select.selection
-            self.selected_config = None
+            await self.select_server_type(event)
 
-            if profile_type == ServerType.WEBSERVER.value:
-                form = self.query_one(f"#{SERVER_FORM}")
-                await form.remove()
-                await self.mount(
-                    WebServerForm(SERVER_FORM, ConfigWebserver()),
-                    after=f"#{SELECT_SERVER_TYPE}",
-                )
-            elif profile_type == ServerType.UPDOG.value:
-                form = self.query_one(f"#{SERVER_FORM}")
-                await form.remove()
-                await self.mount(
-                    UpdogForm(SERVER_FORM, ConfigUpdog()),
-                    after=f"#{SELECT_SERVER_TYPE}",
-                )
-            elif profile_type == ServerType.GOSHS.value:
-                form = self.query_one(f"#{SERVER_FORM}")
-                await form.remove()
-                await self.mount(
-                    GoshsForm(SERVER_FORM, ConfigGoshs()),
-                    after=f"#{SELECT_SERVER_TYPE}",
-                )
+    # Check wether the profile is valid
+    def is_profile_valid(
+        self, profile_name: str, selected_profile: ConfigServer
+    ) -> bool:
+        error_message = None
+        available_interface = [interface[0] for interface in get_network_interfaces()]
+
+        # Check that the given interface exist
+        if selected_profile.interface[0] not in available_interface:
+            error_message = f"Profile '{profile_name}' is not valid, network interface '{selected_profile.interface}' doesn't seems to exist !"
+
+        # Check that the given source folder exist
+        if not pathlib.Path(selected_profile.directory).exists():
+            error_message = f"Profile '{profile_name}' is not valid, directory path '{selected_profile.directory}' doesn't seems to exist !"
+
+        # Check that the server type is valid
+        try:
+            ServerType(selected_profile.type)
+        except ValueError:
+            error_message = f"Profile '{profile_name}' is not valid, server type '{type}' is invalid !"
+
+        if error_message:
+            self.notify(error_message, severity="error")
+            select_server_profile = self.query_one(f"#{SELECT_PROFILE}", Select)
+            select_server_profile.clear()
+
+            return False
+
+        return True
+
+    async def select_profile(self, event: Select.Changed):
+        self.selected_config = config.toml_config_to_object(
+            self.config["profiles"][event.select.selection]
+        )
+
+        if not self.is_profile_valid(event.select.selection, self.selected_config):
+            return
+
+        select_server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select)
+        form = self.query_one(f"#{SERVER_FORM}")
+        await form.remove()
+
+        with self.prevent(Select.Changed):
+            # Do not trigger changed event, otherwise this will
+            # erase the profile
+            select_server_type.value = self.selected_config.type
+
+        if self.selected_config.type == ServerType.WEBSERVER.value:
+            await self.mount(
+                WebServerForm(SERVER_FORM, self.selected_config),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
+        elif self.selected_config.type == ServerType.UPDOG.value:
+            await self.mount(
+                UpdogForm(SERVER_FORM, self.selected_config),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
+        elif self.selected_config.type == ServerType.GOSHS.value:
+            await self.mount(
+                GoshsForm(SERVER_FORM, self.selected_config),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
+        else:
+            await self.mount(
+                WebServerForm(SERVER_FORM, ConfigServer()),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
+
+    async def select_server_type(self, event: Select.Changed):
+        profile_type = event.select.selection
+        self.selected_config = None
+        form = self.query_one(f"#{SERVER_FORM}")
+        await form.remove()
+
+        if profile_type == ServerType.WEBSERVER.value:
+            await self.mount(
+                WebServerForm(SERVER_FORM, ConfigServer()),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
+        elif profile_type == ServerType.UPDOG.value:
+            await self.mount(
+                UpdogForm(SERVER_FORM, ConfigUpdog()),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
+        elif profile_type == ServerType.GOSHS.value:
+            await self.mount(
+                GoshsForm(SERVER_FORM, ConfigGoshs()),
+                after=f"#{SELECT_SERVER_TYPE}",
+            )
 
     def action_custom_exit(self):
         if IS_SERVER_RUNNING:
