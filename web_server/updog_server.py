@@ -23,7 +23,7 @@ class UpdogServer:
             command_line.extend(["-d", self.directory])
 
         if self.port:
-            command_line.extend(["-p", self.port])
+            command_line.extend(["-p", str(self.port)])
 
         if self.password:
             command_line.extend(["--password", self.password])

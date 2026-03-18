@@ -21,6 +21,10 @@ class ServerType(Enum):
     UPDOG = "updog"
     GOSHS = "goshs"
 
+    @classmethod
+    def _missing_(cls, value):
+        return ServerType.WEBSERVER
+
 
 def copy_in_clipboard(input: str):
     # Reference:

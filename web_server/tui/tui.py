@@ -26,6 +26,7 @@ from web_server.config.config import (
     ConfigServer,
     ConfigUpdog,
 )
+from web_server.goshs_server import GoshsServer
 from web_server.tui.screens.open_folder import OpenFileScreen
 from web_server.tui.screens.show_logs import ShowLogsScreen
 from web_server.tui.utils import (
@@ -157,24 +158,27 @@ class TUI(App):
         web_directory = self.screen.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value
         port = self.screen.query_one(f"#{INPUT_PORT}", Input)
 
+        web_directory_optionlist = self.screen.query_one(
+            f"#{OPTIONLIST_FILES}", DoubleClickOptionList
+        )
+
         if ip.is_blank() or not port.is_valid:
             self.notify("Parameters are incorrect !", severity="error")
             return
 
         if not IS_SERVER_RUNNING:
-            if self.selected_config.type == ServerType.WEBSERVER.value:
+            if self.selected_config.type == ServerType.WEBSERVER:
                 self.webserver = WebServer(self.selected_config)
-            elif self.selected_config.type == ServerType.UPDOG.value:
+            elif self.selected_config.type == ServerType.UPDOG:
                 self.webserver = UpdogServer(self.selected_config)
+            elif self.selected_config.type == ServerType.GOSHS:
+                self.webserver = GoshsServer(self.selected_config)
 
             self.webserver.start()
 
             web_directory = self.screen.query_one(
                 f"#{INPUT_WEB_DIRECTORY}", Input
             ).value
-            web_directory_optionlist = self.screen.query_one(
-                f"#{OPTIONLIST_FILES}", DoubleClickOptionList
-            )
             web_directory_optionlist.add_options(get_files_list(web_directory))
 
             self.notify(
@@ -183,6 +187,7 @@ class TUI(App):
             )
         else:
             self.webserver.stop()
+            web_directory_optionlist.clear_options()
             self.notify("Web server stoped !", severity="warning")
 
         IS_SERVER_RUNNING = event.value
@@ -286,19 +291,19 @@ class TUI(App):
         with self.prevent(Select.Changed):
             # Do not trigger changed event, otherwise this will
             # erase the profile
-            select_server_type.value = self.selected_config.type
+            select_server_type.value = self.selected_config.type.value
 
-        if self.selected_config.type == ServerType.WEBSERVER.value:
+        if self.selected_config.type == ServerType.WEBSERVER:
             await self.mount(
                 WebServerForm(SERVER_FORM, self.selected_config),
                 after=f"#{SELECT_SERVER_TYPE}",
             )
-        elif self.selected_config.type == ServerType.UPDOG.value:
+        elif self.selected_config.type == ServerType.UPDOG:
             await self.mount(
                 UpdogForm(SERVER_FORM, self.selected_config),
                 after=f"#{SELECT_SERVER_TYPE}",
             )
-        elif self.selected_config.type == ServerType.GOSHS.value:
+        elif self.selected_config.type == ServerType.GOSHS:
             await self.mount(
                 GoshsForm(SERVER_FORM, self.selected_config),
                 after=f"#{SELECT_SERVER_TYPE}",

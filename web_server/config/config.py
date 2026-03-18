@@ -28,10 +28,11 @@ class AppConfig:
 class ConfigServer:
     def __init__(
         self,
-        type: str = "webserver",
+        type: ServerType = ServerType.WEBSERVER,
         interface: Tuple[str] = ("lo", "127.0.0.1"),
         port: int = 8080,
         directory: str = None,
+        **kwargs
     ):
         self.type = type
         self.interface = interface
@@ -42,11 +43,12 @@ class ConfigServer:
 class ConfigUpdog(ConfigServer):
     def __init__(
         self,
-        type: str = "updog",
+        type: ServerType = ServerType.UPDOG,
         interface: Tuple[str] = ("lo", "127.0.0.1"),
         port: int = 8080,
         directory: str = None,
         password: str = None,
+        **kwargs
     ):
         ConfigServer.__init__(self, type, interface, port, directory)
         self.password = password
@@ -55,11 +57,12 @@ class ConfigUpdog(ConfigServer):
 class ConfigGoshs(ConfigServer):
     def __init__(
         self,
-        type: str = "goshs",
+        type: ServerType = ServerType.GOSHS,
         interface: Tuple[str] = ("lo", "127.0.0.1"),
         port: int = 8080,
         directory: str = None,
         config_file: str = None,
+        **kwargs
     ):
         ConfigServer.__init__(self, type, interface, port, directory)
         self.config_file = config_file
@@ -68,7 +71,8 @@ class ConfigGoshs(ConfigServer):
 # Transform a TOML config into the corresponding Python object
 def toml_config_to_object(selected_config):
     selected_config = selected_config.copy()
-    profile_type = selected_config.get("type", ServerType.WEBSERVER)
+    profile_type = ServerType(selected_config.get("type"))
+    selected_config["type"] = profile_type
 
     original_interface_name = selected_config.get("interface", None)
     selected_config["interface"] = find_interface_by_name(
@@ -78,11 +82,11 @@ def toml_config_to_object(selected_config):
     if not selected_config["interface"]:
         selected_config["interface"] = (original_interface_name, "")
 
-    if profile_type == ServerType.WEBSERVER.value:
+    if profile_type == ServerType.WEBSERVER:
         return ConfigServer(**selected_config)
-    elif profile_type == ServerType.UPDOG.value:
+    elif profile_type == ServerType.UPDOG:
         return ConfigUpdog(**selected_config)
-    elif profile_type == ServerType.GOSHS.value:
+    elif profile_type == ServerType.GOSHS:
         # This case is a bit special, we first need to parse the config file
         with open(selected_config.get("config_file"), "r") as goshs_config:
             json_config = json.load(goshs_config)
