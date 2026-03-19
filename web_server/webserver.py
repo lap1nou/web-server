@@ -17,7 +17,7 @@ class WebServer:
         def handler(*args, **kwargs):
             return CustomHTTPRequestHandler(*args, directory=config.directory, **kwargs)
 
-        self.server = ThreadingHTTPServer((config.interface[1], config.port), handler)
+        self.server = ThreadingHTTPServer((config.interface, int(config.port)), handler)
         self.server.logs = queue.Queue()
         self.thread = threading.Thread(target=self.server.serve_forever)
 

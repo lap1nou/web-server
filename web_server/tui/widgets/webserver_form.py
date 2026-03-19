@@ -5,7 +5,6 @@ from textual.containers import (
 )
 from textual.validation import Number
 from web_server.config.config import ConfigServer
-from web_server.tui.utils import get_network_interfaces
 from web_server.tui.widgets.bordered_input import BorderedInput
 
 INPUT_PORT = "input_port"
@@ -15,9 +14,15 @@ BUTTON_BROWSE_FILE = "button_browse_file"
 
 
 class WebServerForm(Static):
-    def __init__(self, id: str = None, config: ConfigServer = None):
+    def __init__(
+        self,
+        id: str = None,
+        interfaces: dict[str, str] = {},
+        config: ConfigServer = None,
+    ):
         super().__init__(id=id)
         self.config = config
+        self.interfaces = interfaces
 
     def compose(self) -> ComposeResult:
         input_web_directory = BorderedInput(
@@ -42,7 +47,7 @@ class WebServerForm(Static):
             yield input_port
             yield Select(
                 prompt="Listening interface",
-                options=get_network_interfaces(),
+                options=self.interfaces.items(),
                 id=SELECT_INTERFACE,
-                value=self.config.interface[1],
+                value=self.interfaces[self.config.interface],
             )

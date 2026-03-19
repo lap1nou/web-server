@@ -2,12 +2,11 @@ from pathlib import Path
 import shutil
 import tomllib
 import json
-from typing import Tuple
 from web_server.tui.utils import (
     ServerType,
-    find_interface_by_ip,
-    find_interface_by_name,
 )
+
+ATTRIBUTE_SERVER_TYPE = "type"
 
 
 class AppConfig:
@@ -29,10 +28,10 @@ class ConfigServer:
     def __init__(
         self,
         type: ServerType = ServerType.WEBSERVER,
-        interface: Tuple[str] = ("lo", "127.0.0.1"),
+        interface: str = "lo",
         port: int = 8080,
         directory: str = None,
-        **kwargs
+        **kwargs,
     ):
         self.type = type
         self.interface = interface
@@ -44,11 +43,11 @@ class ConfigUpdog(ConfigServer):
     def __init__(
         self,
         type: ServerType = ServerType.UPDOG,
-        interface: Tuple[str] = ("lo", "127.0.0.1"),
+        interface: str = "lo",
         port: int = 8080,
         directory: str = None,
         password: str = None,
-        **kwargs
+        **kwargs,
     ):
         ConfigServer.__init__(self, type, interface, port, directory)
         self.password = password
@@ -58,41 +57,44 @@ class ConfigGoshs(ConfigServer):
     def __init__(
         self,
         type: ServerType = ServerType.GOSHS,
-        interface: Tuple[str] = ("lo", "127.0.0.1"),
+        interface: str = "lo",
         port: int = 8080,
         directory: str = None,
         config_file: str = None,
-        **kwargs
+        **kwargs,
     ):
         ConfigServer.__init__(self, type, interface, port, directory)
         self.config_file = config_file
 
 
 # Transform a TOML config into the corresponding Python object
-def toml_config_to_object(selected_config):
-    selected_config = selected_config.copy()
-    profile_type = ServerType(selected_config.get("type"))
-    selected_config["type"] = profile_type
-
-    original_interface_name = selected_config.get("interface", None)
-    selected_config["interface"] = find_interface_by_name(
-        selected_config.get("interface", None)
+def toml_config_to_object(selected_config, interfaces: dict[str, str]) -> ConfigServer:
+    # Either get the value given by the user, or assign a default value
+    selected_config[ATTRIBUTE_SERVER_TYPE] = ServerType(
+        selected_config.get(ATTRIBUTE_SERVER_TYPE, ServerType.WEBSERVER.value)
     )
+    selected_config["interface"] = selected_config.get("interface", "lo")
+    selected_config["port"] = selected_config.get("port", 8080)
+    selected_config["directory"] = selected_config.get("directory", ".")
 
-    if not selected_config["interface"]:
-        selected_config["interface"] = (original_interface_name, "")
-
-    if profile_type == ServerType.WEBSERVER:
+    if selected_config[ATTRIBUTE_SERVER_TYPE] == ServerType.WEBSERVER:
         return ConfigServer(**selected_config)
-    elif profile_type == ServerType.UPDOG:
+    elif selected_config[ATTRIBUTE_SERVER_TYPE] == ServerType.UPDOG:
         return ConfigUpdog(**selected_config)
-    elif profile_type == ServerType.GOSHS:
+    elif selected_config[ATTRIBUTE_SERVER_TYPE] == ServerType.GOSHS:
         # This case is a bit special, we first need to parse the config file
-        with open(selected_config.get("config_file"), "r") as goshs_config:
-            json_config = json.load(goshs_config)
-            return ConfigGoshs(
-                interface=find_interface_by_ip(json_config["interface"]),
-                port=json_config["port"],
-                directory=json_config["directory"],
-                config_file=selected_config.get("config_file"),
-            )
+        return goshs_json_config_parse(selected_config.get("config_file"), interfaces)
+
+
+def goshs_json_config_parse(
+    config_file: str, interfaces: dict[str, str]
+) -> ConfigGoshs:
+    with open(config_file, "r") as goshs_config:
+        json_config = json.load(goshs_config)
+
+        return ConfigGoshs(
+            interface=interfaces[json_config["interface"]],
+            port=json_config["port"],
+            directory=json_config["directory"],
+            config_file=config_file,
+        )
