@@ -5,6 +5,7 @@ from textual.containers import (
 )
 from textual.validation import Number
 from web_server.config.config import ConfigServer
+from web_server.tui.utils import MAX_PORT, MIN_PORT
 from web_server.tui.widgets.bordered_input import BorderedInput
 
 INPUT_PORT = "input_port"
@@ -34,7 +35,7 @@ class WebServerForm(Static):
         input_port = BorderedInput(
             border_title="Port",
             placeholder="8080",
-            validators=[Number(minimum=1, maximum=65535)],
+            validators=[Number(minimum=MIN_PORT, maximum=MAX_PORT)],
             id=INPUT_PORT,
             type="integer",
             value=str(self.config.port),
@@ -46,6 +47,7 @@ class WebServerForm(Static):
         with HorizontalGroup():
             yield input_port
             yield Select(
+                allow_blank=False,
                 prompt="Listening interface",
                 options=self.interfaces.items(),
                 id=SELECT_INTERFACE,

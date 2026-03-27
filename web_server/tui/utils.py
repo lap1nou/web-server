@@ -6,6 +6,9 @@ import subprocess
 import platform
 import psutil
 
+MIN_PORT = 1
+MAX_PORT = 65535
+
 
 class DownloaderType(Enum):
     CURL = 1

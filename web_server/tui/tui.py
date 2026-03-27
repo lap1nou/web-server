@@ -31,6 +31,8 @@ from web_server.goshs_server import GoshsServer
 from web_server.tui.screens.open_folder import OpenFileScreen
 from web_server.tui.screens.show_logs import ShowLogsScreen
 from web_server.tui.utils import (
+    MAX_PORT,
+    MIN_PORT,
     DownloaderType,
     ServerType,
     copy_in_clipboard,
@@ -158,7 +160,10 @@ class TUI(App):
     async def on_switch_changed(self, event: Switch.Changed):
         global IS_SERVER_RUNNING
 
-        # if self.selected_config.type ==
+        interface = None
+        web_directory = None
+        port = None
+
         web_directory_optionlist = self.screen.query_one(
             f"#{OPTIONLIST_FILES}", DoubleClickOptionList
         )
@@ -175,10 +180,8 @@ class TUI(App):
         except Exception:
             pass
 
-        # TODO: Check provided parameters
-        # if ip.is_blank() or not port.is_valid:
-        # self.notify("Parameters are incorrect !", severity="error")
-        # return
+        if self.is_profile_valid(port, None, web_directory, server_type.value):
+            return
 
         if not IS_SERVER_RUNNING:
             if server_type == ServerType.WEBSERVER:
@@ -276,26 +279,32 @@ class TUI(App):
 
     # Check wether the profile is valid
     def is_profile_valid(
-        self, profile_name: str, selected_profile: ConfigServer
+        self,
+        port: int = None,
+        interface: str = None,
+        directory: str = None,
+        type: str = None,
     ) -> bool:
         error_message = None
-        available_interface = self.interfaces.keys()
-        # available_interface = [interface[0] for interface in get_network_interfaces()]
-        # available_interface =
+
+        # Check that the port is ok
+        if port and port not in range(MIN_PORT, MAX_PORT):
+            error_message = f"Settings are invalid, port '{port}' is invalid !"
 
         # Check that the given interface exist
-        if selected_profile.interface not in available_interface:
-            error_message = f"Profile '{profile_name}' is not valid, network interface '{selected_profile.interface}' doesn't seems to exist !"
+        if interface and interface not in self.interfaces.keys():
+            error_message = f"Settings are invalid, network interface '{interface}' doesn't seems to exist !"
 
         # Check that the given source folder exist
-        if not pathlib.Path(selected_profile.directory).exists():
-            error_message = f"Profile '{profile_name}' is not valid, directory path '{selected_profile.directory}' doesn't seems to exist !"
+        if directory and not pathlib.Path(directory).exists():
+            error_message = f"Settings are invalid, directory path '{directory}' doesn't seems to exist !"
 
         # Check that the server type is valid
         try:
-            ServerType(selected_profile.type)
+            if type:
+                ServerType(type)
         except ValueError:
-            error_message = f"Profile '{profile_name}' is not valid, server type '{type}' is invalid !"
+            error_message = f"Settings are invalid, server type '{type}' is invalid !"
 
         if error_message:
             self.notify(error_message, severity="error")
@@ -311,7 +320,12 @@ class TUI(App):
             self.config["profiles"][event.select.selection], self.interfaces
         )
 
-        if not self.is_profile_valid(event.select.selection, self.selected_config):
+        if not self.is_profile_valid(
+            self.selected_config.port,
+            self.selected_config.interface,
+            self.selected_config.directory,
+            self.selected_config.type,
+        ):
             return
 
         select_server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select)
