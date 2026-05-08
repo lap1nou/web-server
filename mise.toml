@@ -1,13 +1,13 @@
 [hooks]
-enter = "mise i -q && poetry install"
+enter = "mise i -q && uv sync"
 
 [tools]
 ruff = "latest"
 python = "3.13"
-"pipx:poetry" = "2.2.1"
+uv = "latest"
 
 [tasks]
 lint = "ruff format . && ruff check . --fix"
-test = "poetry run pytest"
-console = "poetry run textual console -x EVENT -x DEBUG -x SYSTEM"
-debug = "poetry run textual run --dev web-server.py"
+test = "uv run pytest"
+console = "uv run textual console -x EVENT -x DEBUG -x SYSTEM"
+debug = "uv run textual run --dev web-server.py"
