@@ -7,7 +7,7 @@ from web_server.config.config import ConfigServer
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         message = format % args
-        self.server.logs.put(
+        self.logs.put(
             f"{self.address_string()} - - [{self.log_date_time_string()}] {message}"
         )
 
@@ -18,7 +18,7 @@ class WebServer:
             return CustomHTTPRequestHandler(*args, directory=config.directory, **kwargs)
 
         self.server = ThreadingHTTPServer((config.interface, int(config.port)), handler)
-        self.server.logs = queue.Queue()
+        self.logs = queue.Queue()
         self.thread = threading.Thread(target=self.server.serve_forever)
 
     def start(self):
