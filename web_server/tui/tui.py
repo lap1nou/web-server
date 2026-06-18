@@ -43,7 +43,7 @@ from web_server.tui.utils import (
 from web_server.tui.widgets.bordered_input import BorderedInput
 from web_server.tui.widgets.double_click_optionlist import DoubleClickOptionList
 from web_server.tui.widgets.goshs_form import INPUT_GOSHS_CONFIG, GoshsForm
-from web_server.tui.widgets.updog_form import INPUT_PASSWORD, UpdogForm
+from web_server.tui.widgets.updog_form import BUTTON_SHOW_PASSWORD, INPUT_PASSWORD, UpdogForm
 from web_server.tui.widgets.webserver_form import WebServerForm
 from web_server.updog_server import UpdogServer
 from web_server.webserver import WebServer
@@ -280,6 +280,9 @@ class TUI(App):
             )
         elif event.button.id == BUTTON_SHOW_LOGS and self.webserver:
             self.app.push_screen(ShowLogsScreen(self.webserver))
+        elif event.button.id == BUTTON_SHOW_PASSWORD:
+            password_input = self.screen.query_one(f"#{INPUT_PASSWORD}", Input)
+            password_input.password = not password_input.password
 
     async def on_select_changed(self, event: Select.Changed):
         if event.select.id == SELECT_PROFILE and event.select.selection:

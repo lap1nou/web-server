@@ -30,6 +30,7 @@ VerticalGroup {
 }
 /* General end */
 
+/* Server config form */
 #label_switch {
     margin: 1;
 }
@@ -44,25 +45,28 @@ VerticalGroup {
     width: 40%;
 }
 
+#input_password {
+    margin: 0;
+    width: 1fr;
+}
+
+#input_goshs_config {
+    margin: 0;
+}
+
 #input_web_directory {
     margin: 0;
-    width: 80%;
+    width: 1fr;
 }
 
 #button_browse_file {
-    margin: 0;
-    margin-right: 1;
-    max-width: 20%;
-    width: 20%;
+    margin-left: 1;
 }
 
 #button_show_logs {
-    margin: 0;
-    margin-right: 1;
-    max-width: 20%;
-    width: 20%;
+    margin-left: 1;
 }
-
+/* Server config form end */
 
 /* Modal */
 #actions_horizontal {

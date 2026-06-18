@@ -13,6 +13,7 @@ INPUT_WEB_DIRECTORY = "input_web_directory"
 INPUT_PASSWORD = "input_password"
 SELECT_INTERFACE = "select_interface"
 BUTTON_BROWSE_FILE = "button_browse_file"
+BUTTON_SHOW_PASSWORD = "button_show_password"
 
 
 class UpdogForm(Static):
@@ -48,6 +49,7 @@ class UpdogForm(Static):
             value=self.config.password,
             password=True,
         )
+        button_show_password = Button("👀", id=BUTTON_SHOW_PASSWORD,)
 
         with HorizontalGroup():
             yield input_web_directory
