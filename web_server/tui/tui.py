@@ -3,7 +3,9 @@ import pathlib
 from textual.app import App, ComposeResult
 from textual import on
 from textual.widgets import (
+    Checkbox,
     Label,
+    Markdown,
     Select,
     Switch,
     Button,
@@ -27,20 +29,25 @@ from web_server.config.config import (
     load_config_from_json,
 )
 from web_server.goshs_server import GoshsServer
+from web_server.tui.screens.cheatsheet import CheatsheetScreen
 from web_server.tui.screens.open_folder import OpenFileScreen
 from web_server.tui.screens.show_logs import ShowLogsScreen
 from web_server.tui.utils import (
     MAX_PORT,
     MIN_PORT,
     DownloaderType,
+    FTPDownloaderType,
+    IPFormat,
+    SMBDownloaderType,
     copy_in_clipboard,
     generate_download_command,
     get_files_list,
     get_network_interfaces,
+    ip_formats,
 )
 from web_server.tui.widgets.bordered_input import BorderedInput
 from web_server.tui.widgets.double_click_optionlist import DoubleClickOptionList
-from web_server.tui.widgets.goshs_form import SELECT_SERVER_TYPE, GoshsForm, BUTTON_SHOW_PASSWORD, INPUT_PASSWORD
+from web_server.tui.widgets.goshs_form import CHECKBOX_READ_ONLY, SELECT_IP_FORMAT, SELECT_SERVER_TYPE, GoshsForm, BUTTON_SHOW_PASSWORD, INPUT_PASSWORD
 from textual.keys import Keys
 from textual.binding import Binding
 import urllib.parse
@@ -63,6 +70,7 @@ HORIZONTAL_GROUP_SERVER_CONFIG = "horizontal_group_server_config"
 
 class TUI(App):
     BINDINGS = [
+        Binding(Keys.F1, "cheatsheet", "Cheatsheet", show=True),
         Binding(Keys.ControlC, "custom_exit", "Quit", show=False, priority=True),
         Binding(Keys.ControlQ, "custom_exit", "Quit", show=False, priority=True),
     ]
@@ -104,7 +112,7 @@ class TUI(App):
                         yield Label("on/off", id=LABEL_SWITCH)
                         yield switch_webserver
                         yield HorizontalGroup()
-                        yield Button("Logs", id=BUTTON_SHOW_LOGS)
+                        yield Button("🗒️", id=BUTTON_SHOW_LOGS, tooltip="Server logs")
                     yield GoshsForm(
                         SERVER_FORM, ConfigGoshs(directory=""))
                 yield Select(
@@ -116,7 +124,6 @@ class TUI(App):
                     ],
                     id=SELECT_COMMAND_ID,
                 )
-
         yield Rule(line_style="heavy")
         yield Input(placeholder="🔍 Search...", id=INPUT_SEARCH_BAR)
         yield Footer()
@@ -152,6 +159,7 @@ class TUI(App):
             self.selected_config.password = self.query_one(f"#{INPUT_PASSWORD}", Input).value
             self.selected_config.interface = self.query_one(f"#{SELECT_INTERFACE}", Select).value
             self.selected_config.server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value
+            self.selected_config.read_only = self.query_one(f"#{CHECKBOX_READ_ONLY}", Checkbox).value
 
             if self.selected_config.server_type == "SMB":
                 self.selected_config.smb_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
@@ -185,23 +193,24 @@ class TUI(App):
     def on_path_selected(self, event: OptionList.OptionSelected):
         command_id = self.screen.query_one(f"#{SELECT_COMMAND_ID}", Select)
         ip = self.screen.query_one(f"#{SELECT_INTERFACE}").value
-        port = self.screen.query_one(f"#{INPUT_PORT}").value
-        password = urllib.parse.quote(self.screen.query_one(f"#{INPUT_PASSWORD}").value)
-        username = urllib.parse.quote(self.selected_config.username)
-        filename = urllib.parse.quote(event.option.prompt)
-        protocol = self.screen.query_one(f"#{SELECT_SERVER_TYPE}").value
+        ip_format = self.screen.query_one(f"#{SELECT_IP_FORMAT}").value
 
-        if password:
-            web_path = f"https://{username}:{password}@{ip}:{port}/{filename}"
-        else:
-            web_path = f"https://{ip}:{port}/{filename}"
+        if ip_format != Select.NULL:
+            ip = ip_formats(ip, IPFormat(ip_format))
+
+        port = self.screen.query_one(f"#{INPUT_PORT}").value
+        password = self.screen.query_one(f"#{INPUT_PASSWORD}").value
+        username = self.selected_config.username
+        filename = event.option.prompt
+        protocol = self.screen.query_one(f"#{SELECT_SERVER_TYPE}").value.lower()
+        smb_share = self.selected_config.smb_share
 
         if command_id.is_blank():
             return
 
         copy_in_clipboard(
             generate_download_command(
-                DownloaderType(command_id.value), web_path, filename
+                command_id.value, protocol, ip, port, username, password, filename, smb_share
             )
         )
         self.notify("Path copied to the clipboard !", severity="information")
@@ -247,11 +256,23 @@ class TUI(App):
 
             if server_type == "SMB":
                 self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.smb_port)
+                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
+                        (downloader_type.name, downloader_type.value)
+                        for downloader_type in SMBDownloaderType
+                    ])
             elif server_type == "FTP":
                 self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.ftp_port)
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
+                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
+                    (downloader_type.name, downloader_type.value)
+                    for downloader_type in FTPDownloaderType
+                ])
             else:
                 self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
-
+                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
+                    (downloader_type.name, downloader_type.value)
+                    for downloader_type in DownloaderType
+                ])
 
     # Check wether the profile is valid
     def is_profile_valid(
@@ -305,3 +326,6 @@ class TUI(App):
             self.webserver.stop()
 
         self.exit()
+
+    def action_cheatsheet(self) -> None:
+        self.push_screen(CheatsheetScreen(get_network_interfaces().get(self.selected_config.interface, "127.0.0.1"), self.selected_config.smb_share, self.selected_config.username, self.selected_config.password))

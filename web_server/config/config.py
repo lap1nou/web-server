@@ -19,15 +19,16 @@ def load_config_from_json(config_filename: str = ""):
         smb_port = config_file_json.get('smb_port', 445)
         ftp_port = config_file_json.get('ftp_port', 21)
         read_only = config_file_json.get('read_only', False)
+        smb_share = config_file_json.get('smb_share', "EXEGOL")
 
         if config_file_json.get('smb_server', False):
             server_type = "SMB"
         elif config_file_json.get('ftp', False):
             server_type = "FTP"
         else:
-            server_type = "HTTP"
+            server_type = "HTTPS"
 
-    return ConfigGoshs(interface, http_port, smb_port, ftp_port, directory, auth_username, auth_password, server_type, read_only)
+    return ConfigGoshs(interface, http_port, smb_port, ftp_port, directory, auth_username, auth_password, server_type, read_only, smb_share)
 
 
 class ConfigGoshs:
@@ -42,6 +43,7 @@ class ConfigGoshs:
         password: str = "",
         server_type: str = "",
         read_only: bool = False,
+        smb_share: str = "EXEGOL",
     ):
         self.interface = interface
         self.http_port = http_port
@@ -50,5 +52,6 @@ class ConfigGoshs:
         self.directory = directory
         self.username = username
         self.password = password
+        self.smb_share = smb_share
         self.server_type = server_type
         self.read_only = read_only

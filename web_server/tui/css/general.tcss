@@ -40,6 +40,10 @@ VerticalGroup {
     width: 60%;
 }
 
+#select_ip_format {
+    margin: 0;
+}
+
 #input_port {
     margin: 0;
     width: 40%;
@@ -97,3 +101,19 @@ ShowLogsScreen > Container {
     width: 80;
 }
 /* Modal end */
+
+/* SMB copy command */
+Markdown {
+    width: 1fr;
+}
+
+Markdown MarkdownFence {
+    margin: 0;
+    scrollbar-size-horizontal: 1;
+}
+
+#button_copy {
+    min-width: 0;
+    width: auto;
+}
+/* SMB copy command end */
