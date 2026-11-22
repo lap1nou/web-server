@@ -2,12 +2,30 @@ from pathlib import Path
 import shutil
 import tomllib
 import json
-from web_server.tui.utils import (
-    ServerType,
-)
 
 ATTRIBUTE_SERVER_TYPE = "type"
 
+def load_config_from_json(config_filename: str = ""):
+    with open(AppConfig.CONFIG_FOLDER / config_filename, "r") as config_file:
+        config_file_json = json.load(config_file)
+        interface = config_file_json['interface']
+        
+        directory = config_file_json['directory']
+        auth_password = config_file_json['auth_password']
+        auth_username = config_file_json['auth_username']
+        http_port = config_file_json['port']
+        smb_port = config_file_json['smb_port']
+        ftp_port = config_file_json['ftp_port']
+        read_only = config_file_json['read_only']
+
+        if config_file_json['smb_server']:
+            server_type = "SMB"
+        elif config_file_json['ftp']:
+            server_type = "FTP"
+        else:
+            server_type = "HTTP"
+
+    return ConfigGoshs(interface, http_port, smb_port, ftp_port, directory, auth_username, auth_password, server_type, read_only)
 
 class AppConfig:
     CONFIG_FOLDER = Path.home() / ".webserver_tui"
@@ -24,77 +42,25 @@ class AppConfig:
             self.config = tomllib.load(config_file)
 
 
-class ConfigServer:
+class ConfigGoshs:
     def __init__(
         self,
-        type: ServerType = ServerType.WEBSERVER,
-        interface: str = "lo",
-        port: int = 8080,
-        directory: str = None,
-        **kwargs,
+        interface: str = "127.0.0.1",
+        http_port: int = 443,
+        smb_port: int = 445,
+        ftp_port: int = 21,
+        directory: str = ".",
+        username: str = "",
+        password: str = "",
+        server_type: str = "",
+        read_only: bool = False,
     ):
-        self.type = type
         self.interface = interface
-        self.port = port
+        self.http_port = http_port
+        self.smb_port = smb_port
+        self.ftp_port = ftp_port
         self.directory = directory
-
-
-class ConfigUpdog(ConfigServer):
-    def __init__(
-        self,
-        type: ServerType = ServerType.UPDOG,
-        interface: str = "lo",
-        port: int = 8080,
-        directory: str = None,
-        password: str = None,
-        **kwargs,
-    ):
-        ConfigServer.__init__(self, type, interface, port, directory)
+        self.username = username
         self.password = password
-
-
-class ConfigGoshs(ConfigServer):
-    def __init__(
-        self,
-        type: ServerType = ServerType.GOSHS,
-        interface: str = "lo",
-        port: int = 8080,
-        directory: str = None,
-        config_file: str = None,
-        **kwargs,
-    ):
-        ConfigServer.__init__(self, type, interface, port, directory)
-        self.config_file = config_file
-
-
-# Transform a TOML config into the corresponding Python object
-def toml_config_to_object(selected_config, interfaces: dict[str, str]) -> ConfigServer:
-    # Either get the value given by the user, or assign a default value
-    selected_config[ATTRIBUTE_SERVER_TYPE] = ServerType(
-        selected_config.get(ATTRIBUTE_SERVER_TYPE, ServerType.WEBSERVER.value)
-    )
-    selected_config["interface"] = selected_config.get("interface", "lo")
-    selected_config["port"] = selected_config.get("port", 8080)
-    selected_config["directory"] = selected_config.get("directory", ".")
-
-    if selected_config[ATTRIBUTE_SERVER_TYPE] == ServerType.WEBSERVER:
-        return ConfigServer(**selected_config)
-    elif selected_config[ATTRIBUTE_SERVER_TYPE] == ServerType.UPDOG:
-        return ConfigUpdog(**selected_config)
-    elif selected_config[ATTRIBUTE_SERVER_TYPE] == ServerType.GOSHS:
-        # This case is a bit special, we first need to parse the config file
-        return goshs_json_config_parse(selected_config.get("config_file"), interfaces)
-
-
-def goshs_json_config_parse(
-    config_file: str, interfaces: dict[str, str]
-) -> ConfigGoshs:
-    with open(config_file, "r") as goshs_config:
-        json_config = json.load(goshs_config)
-
-        return ConfigGoshs(
-            interface=interfaces[json_config["interface"]],
-            port=json_config["port"],
-            directory=json_config["directory"],
-            config_file=config_file,
-        )
+        self.server_type = server_type
+        self.read_only = read_only

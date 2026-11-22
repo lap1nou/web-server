@@ -19,16 +19,6 @@ class DownloaderType(Enum):
     CERTUTIL = 6
 
 
-class ServerType(Enum):
-    WEBSERVER = "webserver"
-    UPDOG = "updog"
-    GOSHS = "goshs"
-
-    @classmethod
-    def _missing_(cls, value):
-        return ServerType.WEBSERVER
-
-
 def copy_in_clipboard(input: str):
     # Reference:
     # https://stackoverflow.com/questions/48499398/how-to-run-a-process-and-quit-after-the-script-is-over
@@ -51,24 +41,24 @@ def copy_in_clipboard(input: str):
 # - https://lolbas-project.github.io/#
 # - https://github.com/ShutdownRepo/uberfile
 def generate_download_command(
-    command_id: DownloaderType, address: str, target_path: str
+    command_id: DownloaderType, address: str, filename: str
 ) -> str:
-    target_path = Path(target_path)
+    target_path = Path(filename).name
 
     if command_id == DownloaderType.CURL:
-        return f'''curl "{address}" -o "{target_path.name}"'''
+        return f'''curl "{address}" -o "{target_path}"'''
     elif command_id == DownloaderType.WGET:
-        return f'''wget "{address}" -O "{target_path.name}"'''
+        return f'''wget "{address}" -O "{target_path}"'''
     elif command_id == DownloaderType.PYTHON:
-        return f'''python -c "import urllib.request; urllib.request.urlretrieve('{address}', '{target_path.name}')"'''
+        return f'''python -c "import urllib.request; urllib.request.urlretrieve('{address}', '{target_path}')"'''
     elif command_id == DownloaderType.POWERSHELL:
-        return f'''iwr "{address}" -OutFile "{target_path.name}"'''
+        return f'''iwr "{address}" -OutFile "{target_path}"'''
     elif command_id == DownloaderType.BITSADMIN:
         return (
-            f'''bitsadmin /transfer 1111 /download "{address}" "{target_path.name}"'''
+            f'''bitsadmin /transfer 1111 /download "{address}" "{target_path}"'''
         )
     elif command_id == DownloaderType.CERTUTIL:
-        return f'''certutil.exe -urlcache -f "{address}" "{target_path.name}"'''
+        return f'''certutil.exe -urlcache -f "{address}" "{target_path}"'''
     else:
         return ""
 

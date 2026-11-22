@@ -22,10 +22,9 @@ from textual.containers import (
 )
 from web_server.config import config
 from web_server.config.config import (
+    AppConfig,
     ConfigGoshs,
-    ConfigServer,
-    ConfigUpdog,
-    goshs_json_config_parse,
+    load_config_from_json,
 )
 from web_server.goshs_server import GoshsServer
 from web_server.tui.screens.open_folder import OpenFileScreen
@@ -34,7 +33,6 @@ from web_server.tui.utils import (
     MAX_PORT,
     MIN_PORT,
     DownloaderType,
-    ServerType,
     copy_in_clipboard,
     generate_download_command,
     get_files_list,
@@ -42,18 +40,13 @@ from web_server.tui.utils import (
 )
 from web_server.tui.widgets.bordered_input import BorderedInput
 from web_server.tui.widgets.double_click_optionlist import DoubleClickOptionList
-from web_server.tui.widgets.goshs_form import INPUT_GOSHS_CONFIG, GoshsForm
-from web_server.tui.widgets.updog_form import BUTTON_SHOW_PASSWORD, INPUT_PASSWORD, UpdogForm
-from web_server.tui.widgets.webserver_form import WebServerForm
-from web_server.updog_server import UpdogServer
-from web_server.webserver import WebServer
+from web_server.tui.widgets.goshs_form import SELECT_SERVER_TYPE, GoshsForm, BUTTON_SHOW_PASSWORD, INPUT_PASSWORD
 from textual.keys import Keys
 from textual.binding import Binding
 
 IS_SERVER_RUNNING = False
 
 INPUT_WEB_DIRECTORY = "input_web_directory"
-INPUT_TARGET_PATH = "input_target_path"
 INPUT_PORT = "input_port"
 INPUT_SEARCH_BAR = "input_search_bar"
 LABEL_SWITCH = "label_switch"
@@ -61,7 +54,6 @@ BUTTON_BROWSE_FILE = "button_browse_file"
 BUTTON_SHOW_LOGS = "button_show_logs"
 SELECT_PROFILE = "select_profile"
 SELECT_INTERFACE = "select_interface"
-SELECT_SERVER_TYPE = "select_server_type"
 SELECT_COMMAND_ID = "select_command_id"
 OPTIONLIST_FILES = "optionlist_files"
 SERVER_FORM = "server_form"
@@ -88,21 +80,16 @@ class TUI(App):
     def compose(self) -> ComposeResult:
         switch_webserver = Switch()
 
-        input_target_path = BorderedInput(
-            border_title="Target path",
-            placeholder="e.g: C:\\Users\\Public\\",
-            id=INPUT_TARGET_PATH,
-        )
-
         vertical_group_config = VerticalGroup()
         vertical_group_config.border_title = "Server config"
 
         vertical_files = Vertical(id="vertical_files")
         vertical_files.border_title = "Files"
 
+
         select_profile = Select(
             prompt="Profile",
-            options=[(key, key) for key in self.config["profiles"].keys()],
+            options=[(key.name, key.name) for key in list(pathlib.Path(AppConfig.CONFIG_FOLDER).glob("*.json"))],
             id=SELECT_PROFILE,
         )
 
@@ -119,18 +106,8 @@ class TUI(App):
                         yield switch_webserver
                         yield HorizontalGroup()
                         yield Button("Logs", id=BUTTON_SHOW_LOGS)
-                    yield Select(
-                        id=SELECT_SERVER_TYPE,
-                        allow_blank=False,
-                        options=[
-                            (server_type.name, server_type.value)
-                            for server_type in ServerType
-                        ],
-                    )
-                    yield WebServerForm(
-                        SERVER_FORM, self.interfaces, ConfigServer(ServerType.WEBSERVER)
-                    )
-                yield input_target_path
+                    yield GoshsForm(
+                        SERVER_FORM, ConfigGoshs(directory=""))
                 yield Select(
                     allow_blank=False,
                     prompt="Download command type",
@@ -146,12 +123,12 @@ class TUI(App):
         yield Footer()
 
     def on_mount(self) -> None:
-        if self.args.profile:
-            try:
-                select_profile = self.screen.query_one(f"#{SELECT_PROFILE}", Select)
-                select_profile.value = self.args.profile
-            except Exception:
-                pass
+        #if self.args.profile:
+        #    try:
+        #        select_profile = self.screen.query_one(f"#{SELECT_PROFILE}", Select)
+        #        select_profile.value = self.args.profile
+        #    except Exception:
+        #        pass
 
         if self.args.auto:
             switch_webserver = self.screen.query_one(Switch)
@@ -167,9 +144,6 @@ class TUI(App):
         web_directory_optionlist = self.screen.query_one(
             f"#{OPTIONLIST_FILES}", DoubleClickOptionList
         )
-        server_type = ServerType(
-            self.screen.query_one(f"#{SELECT_SERVER_TYPE}", Select).value
-        )
 
         try:
             interface = self.screen.query_one(f"#{SELECT_INTERFACE}", Select).value
@@ -180,33 +154,21 @@ class TUI(App):
         except Exception:
             pass
 
-        if self.is_profile_valid(port, None, web_directory, server_type.value):
-            return
+        #if self.is_profile_valid(port, None, web_directory):
+            #return
 
         if not IS_SERVER_RUNNING:
-            if server_type == ServerType.WEBSERVER:
-                self.webserver = WebServer(
-                    ConfigServer(
-                        interface=interface, port=port, directory=web_directory
-                    )
-                )
-            elif server_type == ServerType.UPDOG:
-                password = self.screen.query_one(f"#{INPUT_PASSWORD}", Input).value
-                self.webserver = UpdogServer(
-                    ConfigUpdog(
-                        interface=interface,
-                        port=port,
-                        directory=web_directory,
-                        password=password,
-                    )
-                )
-            elif server_type == ServerType.GOSHS:
-                config_file = self.screen.query_one(
-                    f"#{INPUT_GOSHS_CONFIG}", Input
-                ).value
-                self.webserver = GoshsServer(
-                    goshs_json_config_parse(config_file, self.interfaces)
-                )
+            og = AppConfig.CONFIG_FOLDER / self.screen.query_one(f"#{SELECT_PROFILE}", Select).value
+
+            self.selected_config.directory = self.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value
+            self.selected_config.port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
+            self.selected_config.password = self.query_one(f"#{INPUT_PASSWORD}", Input).value
+            self.selected_config.interface = self.query_one(f"#{SELECT_INTERFACE}", Select).value
+            self.selected_config.server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value
+
+            self.webserver = GoshsServer(
+                self.selected_config, og
+            )
 
             self.webserver.start()
 
@@ -228,25 +190,20 @@ class TUI(App):
         command_id = self.screen.query_one(f"#{SELECT_COMMAND_ID}", Select)
         ip = self.screen.query_one(f"#{SELECT_INTERFACE}").value
         port = self.screen.query_one(f"#{INPUT_PORT}").value
-        target_path = self.screen.query_one(f"#{INPUT_TARGET_PATH}").value
-        password = None
-
-        try:
-            password = self.screen.query_one(f"#{INPUT_PASSWORD}").value
-        except Exception:
-            pass
+        password = self.screen.query_one(f"#{INPUT_PASSWORD}").value
+        username = self.selected_config.username
 
         if password:
-            web_path = f"http://:{password}@{ip}:{port}/{event.option.prompt}"
+            web_path = f"https://{username}:{password}@{ip}:{port}/{event.option.prompt}"
         else:
-            web_path = f"http://{ip}:{port}/{event.option.prompt}"
+            web_path = f"https://{ip}:{port}/{event.option.prompt}"
 
         if command_id.is_blank():
             return
 
         copy_in_clipboard(
             generate_download_command(
-                DownloaderType(command_id.value), web_path, target_path
+                DownloaderType(command_id.value), web_path, event.option.prompt
             )
         )
         self.notify("Path copied to the clipboard !", severity="information")
@@ -288,7 +245,15 @@ class TUI(App):
         if event.select.id == SELECT_PROFILE and event.select.selection:
             await self.select_profile(event)
         elif event.select.id == SELECT_SERVER_TYPE:
-            await self.select_server_type(event)
+            server_type = event.select.selection
+
+            if server_type == "SMB":
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.smb_port)
+            elif server_type == "FTP":
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.ftp_port)
+            else:
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
+
 
     # Check wether the profile is valid
     def is_profile_valid(
@@ -312,86 +277,30 @@ class TUI(App):
         if directory and not pathlib.Path(directory).exists():
             error_message = f"Settings are invalid, directory path '{directory}' doesn't seems to exist !"
 
-        # Check that the server type is valid
-        try:
-            if type:
-                ServerType(type)
-        except ValueError:
-            error_message = f"Settings are invalid, server type '{type}' is invalid !"
-
         if error_message:
             self.notify(error_message, severity="error")
-            select_server_profile = self.query_one(f"#{SELECT_PROFILE}", Select)
-            select_server_profile.clear()
+            #select_server_profile = self.query_one(f"#{SELECT_PROFILE}", Select)
+            #select_server_profile.clear()
 
             return False
 
         return True
 
     async def select_profile(self, event: Select.Changed):
-        self.selected_config = config.toml_config_to_object(
-            self.config["profiles"][event.select.selection], self.interfaces
-        )
+        self.selected_config = load_config_from_json(event.select.selection)
 
-        if not self.is_profile_valid(
-            self.selected_config.port,
-            self.selected_config.interface,
-            self.selected_config.directory,
-            self.selected_config.type,
-        ):
-            return
+        self.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value = self.selected_config.directory
+        self.query_one(f"#{INPUT_PASSWORD}", Input).value = self.selected_config.password
+        self.query_one(f"#{SELECT_INTERFACE}", Select).value = get_network_interfaces().get(self.selected_config.interface, "127.0.0.1")
+        self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value = self.selected_config.server_type
 
-        select_server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select)
-        form = self.query_one(f"#{SERVER_FORM}")
-        await form.remove()
-
-        with self.prevent(Select.Changed):
-            # Do not trigger changed event, otherwise this will
-            # erase the profile
-            select_server_type.value = self.selected_config.type.value
-
-        if self.selected_config.type == ServerType.WEBSERVER:
-            await self.mount(
-                WebServerForm(SERVER_FORM, self.interfaces, self.selected_config),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
-        elif self.selected_config.type == ServerType.UPDOG:
-            await self.mount(
-                UpdogForm(SERVER_FORM, self.interfaces, self.selected_config),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
-        elif self.selected_config.type == ServerType.GOSHS:
-            await self.mount(
-                GoshsForm(SERVER_FORM, self.selected_config),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
+        if self.selected_config.server_type == "SMB":
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.smb_port)
+        elif self.selected_config.server_type == "FTP":
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.ftp_port)
         else:
-            await self.mount(
-                WebServerForm(SERVER_FORM, self.interfaces, ConfigServer()),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
 
-    async def select_server_type(self, event: Select.Changed):
-        profile_type = event.select.selection
-        # self.selected_config = None
-        form = self.query_one(f"#{SERVER_FORM}")
-        await form.remove()
-
-        if profile_type == ServerType.WEBSERVER.value:
-            await self.mount(
-                WebServerForm(SERVER_FORM, self.interfaces, ConfigServer()),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
-        elif profile_type == ServerType.UPDOG.value:
-            await self.mount(
-                UpdogForm(SERVER_FORM, self.interfaces, ConfigUpdog()),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
-        elif profile_type == ServerType.GOSHS.value:
-            await self.mount(
-                GoshsForm(SERVER_FORM, ConfigGoshs()),
-                after=f"#{SELECT_SERVER_TYPE}",
-            )
 
     def action_custom_exit(self):
         if IS_SERVER_RUNNING:
