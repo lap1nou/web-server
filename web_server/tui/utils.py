@@ -93,14 +93,14 @@ def generate_download_command(
     elif isinstance(command_id, SMBDownloaderType):
         if command_id == SMBDownloaderType.COPY:
             unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
-            return f'''copy /-Y {unc} "{target_path}"'''
+            return f'''copy /-Y "{unc}" "{target_path}"'''
         elif command_id == SMBDownloaderType.COPY_ITEM:
             unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
-            return f'''Copy-Item {unc} "{target_path}" -Confirm'''
+            return f'''Copy-Item '{unc}' '{target_path}' -Confirm'''
         elif command_id == SMBDownloaderType.SMBGET:
-            return f'''smbget -U "{username}:{password}" "{protocol}://{ip}/{quote(smb_share)}/{quote(filename, safe="/")}" -o "{target_path}" '''
+            return f'''smbget -U "{username}%{password}" "{protocol}://{ip}:{port}/{quote(smb_share)}/{quote(filename, safe="/")}" -o "{target_path}" '''
     elif isinstance(command_id, FTPDownloaderType):
-        return f'''curl -u "{username}:{password}" "{protocol}://{ip}/{quote(filename, safe="/")}" -o "{target_path}"'''
+        return f'''curl "{protocol}://{quote(username, safe="")}:{quote(password, safe="")}@{ip}:{port}/{quote(filename, safe="/")}" -o "{target_path}"'''
     else:
         return ""
 
@@ -142,8 +142,8 @@ def ip_formats(ip: str, ip_format: IPFormat = None) -> str:
     elif ip_format == IPFormat.HEX:
         result = "0" + format(n, "o")
     elif ip_format == IPFormat.DOTTED_OCTAL:
-        result = ".".join(f"0x{int(o):02x}" for o in octets)
-    elif ip_format == IPFormat.DOTTED_HEX:
         result = ".".join(f"0{int(o):o}" for o in octets)
+    elif ip_format == IPFormat.DOTTED_HEX:
+        result = ".".join(f"0x{int(o):02x}" for o in octets)
 
     return result

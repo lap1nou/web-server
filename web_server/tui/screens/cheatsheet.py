@@ -24,6 +24,9 @@ class CheatsheetScreen(ModalScreen):
         self.password = password
 
     def compose(self) -> ComposeResult:
+        global SMB_MOUNT
+        global SMB_MOUNT_DELETE
+
         container = Container()
         container.border_title = "📁 Cheatsheet"
         SMB_MOUNT = f'''
