@@ -1,6 +1,6 @@
+import collections
 import json
 import os
-import queue
 import subprocess
 import tempfile
 import threading
@@ -13,7 +13,8 @@ class GoshsServer:
         self.config = config
         self.og_config_file = og_config_file
         self.tmp_config_file = None
-        self.logs = queue.Queue()
+        self.logs = collections.deque(maxlen=5000)
+        self.logs_lock = threading.Lock()
         self.thread = threading.Thread(target=self.worker)
 
     def worker(self):
@@ -50,7 +51,12 @@ class GoshsServer:
         )
 
         for line in self.process.stdout:
-            self.logs.put(line)
+            with self.logs_lock:
+                self.logs.append(line)
+
+    def get_logs(self) -> list[str]:
+        with self.logs_lock:
+            return list(self.logs)
 
     def start(self):
         self.thread.start()

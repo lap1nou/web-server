@@ -23,7 +23,7 @@ class ShowLogsScreen(ModalScreen):
         container.border_title = "🗒️ Server logs"
 
         with container:
-            yield RichLog(highlight=True)
+            yield RichLog(highlight=True, auto_scroll=True)
             yield Horizontal(
                 Button("Refresh", id=BUTTON_REFRESH),
                 Button.error("Cancel", id=ID_CANCEL_BUTTON),
@@ -31,14 +31,14 @@ class ShowLogsScreen(ModalScreen):
             )
 
     def on_mount(self):
-        self.update_richlog()
+        self.set_interval(2, self.update_richlog)
 
     def update_richlog(self):
         richlog = self.query_one(RichLog)
         richlog.clear()
 
-        for line in self.server.logs.queue:
-            richlog.write(line)
+        for line in self.server.get_logs():
+            richlog.write(line.rstrip("\n"))
 
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == BUTTON_REFRESH:

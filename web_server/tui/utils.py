@@ -149,9 +149,9 @@ def ip_formats(ip: str, ip_format: IPFormat = None) -> str:
     if ip_format == IPFormat.DECIMAL:
         result = str(n)
     elif ip_format == IPFormat.OCTAL:
-        result = hex(n)
-    elif ip_format == IPFormat.HEX:
         result = "0" + format(n, "o")
+    elif ip_format == IPFormat.HEX:
+        result = hex(n)
     elif ip_format == IPFormat.DOTTED_OCTAL:
         result = ".".join(f"0{int(o):o}" for o in octets)
     elif ip_format == IPFormat.DOTTED_HEX:

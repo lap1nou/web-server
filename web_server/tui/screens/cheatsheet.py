@@ -24,6 +24,8 @@ class CheatsheetScreen(ModalScreen):
         self.smb_share = smb_share
         self.username = username
         self.password = password
+        self.cmd_smb_mount = f'net use "\\\\{self.ip}\\{self.smb_share}" /user:"{self.username}" "{self.password}"'
+        self.cmd_smb_mount_delete = f'net use "\\\\{self.ip}\\{self.smb_share}" /delete'
 
     def compose(self) -> ComposeResult:
         global SMB_MOUNT
@@ -31,14 +33,14 @@ class CheatsheetScreen(ModalScreen):
 
         container = Container()
         container.border_title = "📚 Cheatsheet"
-        SMB_MOUNT = f'''
+        SMB_MOUNT = f"""
 ```bat
-net use "\\\\{self.ip}\\{self.smb_share}" /user:"{self.username}" "{self.password}"
+{self.cmd_smb_mount}
 ```
-        '''
+        """
         SMB_MOUNT_DELETE = f"""
 ```bat
-net use "\\\\{self.ip}\\{self.smb_share}" /delete
+{self.cmd_smb_mount_delete}
 ```
         """
         with container:
@@ -55,6 +57,8 @@ net use "\\\\{self.ip}\\{self.smb_share}" /delete
         if event.button.id == ID_BUTTON_CLOSE:
             self.screen.dismiss()
         elif event.button.id == ID_BUTTON_COPY_1:
-            utils.copy_in_clipboard(SMB_MOUNT)
+            utils.copy_in_clipboard(self.cmd_smb_mount)
+            self.screen.dismiss()
         elif event.button.id == ID_BUTTON_COPY_2:
-            utils.copy_in_clipboard(SMB_MOUNT_DELETE)
+            utils.copy_in_clipboard(self.cmd_smb_mount_delete)
+            self.screen.dismiss()
