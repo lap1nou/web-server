@@ -1,10 +1,9 @@
-from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.widgets import Markdown, Static, DirectoryTree, Button, Input
-from textual.containers import Container, HorizontalGroup
+from textual.containers import Center, Container, HorizontalGroup
+from textual.screen import ModalScreen
+from textual.widgets import Button, Markdown
 
 from web_server.tui import utils
-from web_server.tui.widgets.action_buttons import ID_CONFIRM_BUTTON, ActionButtons
 
 ID_PATH_INPUT = "select_path_input"
 HORIZONTAL_GROUP_SERVER_CONFIG = "horizontal_group_server_config"
@@ -15,8 +14,11 @@ ID_BUTTON_COPY_2 = "button_copy_2"
 SMB_MOUNT = ""
 SMB_MOUNT_DELETE = ""
 
+
 class CheatsheetScreen(ModalScreen):
-    def __init__(self, ip: str = "", smb_share: str = "", username: str = "", password: str = ""):
+    def __init__(
+        self, ip: str = "", smb_share: str = "", username: str = "", password: str = ""
+    ):
         super().__init__()
         self.ip = ip
         self.smb_share = smb_share
@@ -28,17 +30,17 @@ class CheatsheetScreen(ModalScreen):
         global SMB_MOUNT_DELETE
 
         container = Container()
-        container.border_title = "📁 Cheatsheet"
+        container.border_title = "📚 Cheatsheet"
         SMB_MOUNT = f'''
-```pwsh
-net use \\\\{self.ip}\\{self.smb_share} /user:{self.username} {self.password}
+```bat
+net use "\\\\{self.ip}\\{self.smb_share}" /user:"{self.username}" "{self.password}"
 ```
         '''
-        SMB_MOUNT_DELETE = f'''
-```pwsh
-net use \\\\{self.ip}\\{self.smb_share} /delete
+        SMB_MOUNT_DELETE = f"""
+```bat
+net use "\\\\{self.ip}\\{self.smb_share}" /delete
 ```
-        '''
+        """
         with container:
             with HorizontalGroup(id=HORIZONTAL_GROUP_SERVER_CONFIG):
                 yield Markdown(SMB_MOUNT)
@@ -46,8 +48,8 @@ net use \\\\{self.ip}\\{self.smb_share} /delete
             with HorizontalGroup():
                 yield Markdown(SMB_MOUNT_DELETE)
                 yield Button("📃", id=ID_BUTTON_COPY_2)
-            yield Button("Close", variant="error", id=ID_BUTTON_CLOSE)
-
+            with Center():
+                yield Button("Close", variant="error", id=ID_BUTTON_CLOSE)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == ID_BUTTON_CLOSE:

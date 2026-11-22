@@ -1,28 +1,30 @@
 import importlib.metadata
 import pathlib
-from textual.app import App, ComposeResult
+
 from textual import on
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import (
+    Horizontal,
+    HorizontalGroup,
+    Vertical,
+    VerticalGroup,
+    VerticalScroll,
+)
+from textual.keys import Keys
 from textual.widgets import (
-    Checkbox,
-    Label,
-    Markdown,
-    Select,
-    Switch,
     Button,
+    Checkbox,
     Footer,
     Header,
     Input,
-    Rule,
+    Label,
     OptionList,
+    Rule,
+    Select,
+    Switch,
 )
-from textual.containers import (
-    VerticalScroll,
-    VerticalGroup,
-    HorizontalGroup,
-    Horizontal,
-    Vertical,
-)
-from web_server.config import config
+
 from web_server.config.config import (
     CONFIG_FOLDER,
     ConfigGoshs,
@@ -45,12 +47,15 @@ from web_server.tui.utils import (
     get_network_interfaces,
     ip_formats,
 )
-from web_server.tui.widgets.bordered_input import BorderedInput
 from web_server.tui.widgets.double_click_optionlist import DoubleClickOptionList
-from web_server.tui.widgets.goshs_form import CHECKBOX_READ_ONLY, SELECT_IP_FORMAT, SELECT_SERVER_TYPE, GoshsForm, BUTTON_SHOW_PASSWORD, INPUT_PASSWORD
-from textual.keys import Keys
-from textual.binding import Binding
-import urllib.parse
+from web_server.tui.widgets.goshs_form import (
+    BUTTON_SHOW_PASSWORD,
+    CHECKBOX_READ_ONLY,
+    INPUT_PASSWORD,
+    SELECT_IP_FORMAT,
+    SELECT_SERVER_TYPE,
+    GoshsForm,
+)
 
 IS_SERVER_RUNNING = False
 
@@ -93,10 +98,12 @@ class TUI(App):
         vertical_files = Vertical(id="vertical_files")
         vertical_files.border_title = "Files"
 
-
         select_profile = Select(
             prompt="Profile",
-            options=[(key.name, key.name) for key in list(pathlib.Path(CONFIG_FOLDER).glob("*.json"))],
+            options=[
+                (key.name, key.name)
+                for key in list(pathlib.Path(CONFIG_FOLDER).glob("*.json"))
+            ],
             id=SELECT_PROFILE,
         )
 
@@ -113,8 +120,7 @@ class TUI(App):
                         yield switch_webserver
                         yield HorizontalGroup()
                         yield Button("🗒️", id=BUTTON_SHOW_LOGS, tooltip="Server logs")
-                    yield GoshsForm(
-                        SERVER_FORM, ConfigGoshs(directory=""))
+                    yield GoshsForm(SERVER_FORM, ConfigGoshs(directory=""))
                 yield Select(
                     allow_blank=False,
                     prompt="Download command type",
@@ -127,7 +133,6 @@ class TUI(App):
         yield Rule(line_style="heavy")
         yield Input(placeholder="🔍 Search...", id=INPUT_SEARCH_BAR)
         yield Footer()
-
 
     async def on_switch_changed(self, event: Switch.Changed):
         global IS_SERVER_RUNNING
@@ -149,28 +154,45 @@ class TUI(App):
         except Exception:
             pass
 
-        #if self.is_profile_valid(port, None, web_directory):
-            #return
+        # if self.is_profile_valid(port, None, web_directory):
+        # return
 
         if not IS_SERVER_RUNNING:
-            og = CONFIG_FOLDER / self.screen.query_one(f"#{SELECT_PROFILE}", Select).value
+            og = (
+                CONFIG_FOLDER
+                / self.screen.query_one(f"#{SELECT_PROFILE}", Select).value
+            )
 
-            self.selected_config.directory = self.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value
-            self.selected_config.password = self.query_one(f"#{INPUT_PASSWORD}", Input).value
-            self.selected_config.interface = self.query_one(f"#{SELECT_INTERFACE}", Select).value
-            self.selected_config.server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value
-            self.selected_config.read_only = self.query_one(f"#{CHECKBOX_READ_ONLY}", Checkbox).value
+            self.selected_config.directory = self.query_one(
+                f"#{INPUT_WEB_DIRECTORY}", Input
+            ).value
+            self.selected_config.password = self.query_one(
+                f"#{INPUT_PASSWORD}", Input
+            ).value
+            self.selected_config.interface = self.query_one(
+                f"#{SELECT_INTERFACE}", Select
+            ).value
+            self.selected_config.server_type = self.query_one(
+                f"#{SELECT_SERVER_TYPE}", Select
+            ).value
+            self.selected_config.read_only = self.query_one(
+                f"#{CHECKBOX_READ_ONLY}", Checkbox
+            ).value
 
             if self.selected_config.server_type == "SMB":
-                self.selected_config.smb_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
+                self.selected_config.smb_port = int(
+                    self.query_one(f"#{INPUT_PORT}", Input).value
+                )
             elif self.selected_config.server_type == "FTP":
-                self.selected_config.ftp_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
+                self.selected_config.ftp_port = int(
+                    self.query_one(f"#{INPUT_PORT}", Input).value
+                )
             else:
-                self.selected_config.http_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
+                self.selected_config.http_port = int(
+                    self.query_one(f"#{INPUT_PORT}", Input).value
+                )
 
-            self.webserver = GoshsServer(
-                self.selected_config, og
-            )
+            self.webserver = GoshsServer(self.selected_config, og)
 
             self.webserver.start()
 
@@ -187,7 +209,6 @@ class TUI(App):
             web_directory_optionlist.clear_options()
             self.notify("Web server stoped !", severity="warning")
             IS_SERVER_RUNNING = event.value
-
 
     @on(OptionList.OptionSelected)
     def on_path_selected(self, event: OptionList.OptionSelected):
@@ -210,7 +231,14 @@ class TUI(App):
 
         copy_in_clipboard(
             generate_download_command(
-                command_id.value, protocol, ip, port, username, password, filename, smb_share
+                command_id.value,
+                protocol,
+                ip,
+                port,
+                username,
+                password,
+                filename,
+                smb_share,
             )
         )
         self.notify("Path copied to the clipboard !", severity="information")
@@ -255,23 +283,35 @@ class TUI(App):
             server_type = event.select.selection
 
             if server_type == "SMB":
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.smb_port)
-                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(
+                    self.selected_config.smb_port
+                )
+                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(
+                    [
                         (downloader_type.name, downloader_type.value)
                         for downloader_type in SMBDownloaderType
-                    ])
+                    ]
+                )
             elif server_type == "FTP":
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.ftp_port)
-                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
-                    (downloader_type.name, downloader_type.value)
-                    for downloader_type in FTPDownloaderType
-                ])
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(
+                    self.selected_config.ftp_port
+                )
+                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(
+                    [
+                        (downloader_type.name, downloader_type.value)
+                        for downloader_type in FTPDownloaderType
+                    ]
+                )
             else:
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
-                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
-                    (downloader_type.name, downloader_type.value)
-                    for downloader_type in DownloaderType
-                ])
+                self.query_one(f"#{INPUT_PORT}", Input).value = str(
+                    self.selected_config.http_port
+                )
+                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(
+                    [
+                        (downloader_type.name, downloader_type.value)
+                        for downloader_type in DownloaderType
+                    ]
+                )
 
     # Check wether the profile is valid
     def is_profile_valid(
@@ -297,8 +337,8 @@ class TUI(App):
 
         if error_message:
             self.notify(error_message, severity="error")
-            #select_server_profile = self.query_one(f"#{SELECT_PROFILE}", Select)
-            #select_server_profile.clear()
+            # select_server_profile = self.query_one(f"#{SELECT_PROFILE}", Select)
+            # select_server_profile.clear()
 
             return False
 
@@ -307,19 +347,36 @@ class TUI(App):
     async def select_profile(self, event: Select.Changed):
         self.selected_config = load_config_from_json(event.select.selection)
 
-        self.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value = self.selected_config.directory
-        self.query_one(f"#{INPUT_PASSWORD}", Input).value = self.selected_config.password
-        self.query_one(f"#{SELECT_INTERFACE}", Select).value = get_network_interfaces().get(self.selected_config.interface, "127.0.0.1")
-        self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value = self.selected_config.server_type
-        self.query_one(f"#{CHECKBOX_READ_ONLY}", Checkbox).value = self.selected_config.read_only
+        self.query_one(
+            f"#{INPUT_WEB_DIRECTORY}", Input
+        ).value = self.selected_config.directory
+        self.query_one(
+            f"#{INPUT_PASSWORD}", Input
+        ).value = self.selected_config.password
+        self.query_one(
+            f"#{SELECT_INTERFACE}", Select
+        ).value = get_network_interfaces().get(
+            self.selected_config.interface, "127.0.0.1"
+        )
+        self.query_one(
+            f"#{SELECT_SERVER_TYPE}", Select
+        ).value = self.selected_config.server_type
+        self.query_one(
+            f"#{CHECKBOX_READ_ONLY}", Checkbox
+        ).value = self.selected_config.read_only
 
         if self.selected_config.server_type == "SMB":
-            self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.smb_port)
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(
+                self.selected_config.smb_port
+            )
         elif self.selected_config.server_type == "FTP":
-            self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.ftp_port)
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(
+                self.selected_config.ftp_port
+            )
         else:
-            self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
-
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(
+                self.selected_config.http_port
+            )
 
     def action_custom_exit(self):
         if IS_SERVER_RUNNING:
@@ -329,4 +386,13 @@ class TUI(App):
 
     def action_cheatsheet(self) -> None:
         if self.selected_config:
-            self.push_screen(CheatsheetScreen(get_network_interfaces().get(self.selected_config.interface, "127.0.0.1"), self.selected_config.smb_share, self.selected_config.username, self.selected_config.password))
+            self.push_screen(
+                CheatsheetScreen(
+                    get_network_interfaces().get(
+                        self.selected_config.interface, "127.0.0.1"
+                    ),
+                    self.selected_config.smb_share,
+                    self.selected_config.username,
+                    self.selected_config.password,
+                )
+            )

@@ -1,12 +1,13 @@
+import ipaddress
+import platform
+import subprocess
 from enum import Enum
 from pathlib import Path, PurePosixPath
 from socket import AddressFamily
-import pyperclip
-import subprocess
-import platform
-import psutil
-import ipaddress
 from urllib.parse import quote
+
+import psutil
+import pyperclip
 
 MIN_PORT = 1
 MAX_PORT = 65535
@@ -20,13 +21,16 @@ class DownloaderType(Enum):
     BITSADMIN = 5
     CERTUTIL = 6
 
+
 class SMBDownloaderType(Enum):
     COPY = 1
     COPY_ITEM = 2
     SMBGET = 3
 
+
 class FTPDownloaderType(Enum):
     CURL = 1
+
 
 class IPFormat(Enum):
     DECIMAL = 1
@@ -34,6 +38,7 @@ class IPFormat(Enum):
     HEX = 3
     DOTTED_HEX = 4
     DOTTED_OCTAL = 5
+
 
 def copy_in_clipboard(input: str):
     # Reference:
@@ -57,14 +62,21 @@ def copy_in_clipboard(input: str):
 # - https://lolbas-project.github.io/#
 # - https://github.com/ShutdownRepo/uberfile
 def generate_download_command(
-    command_id: int, protocol:str, ip: str, port: int, username: str, password: str, filename: str, smb_share: str
+    command_id: int,
+    protocol: str,
+    ip: str,
+    port: int,
+    username: str,
+    password: str,
+    filename: str,
+    smb_share: str,
 ) -> str:
     target_path = PurePosixPath(filename).name
 
     if password:
-        url = f"{protocol}://{quote(username, safe="")}:{quote(password, safe="")}@{ip}:{port}/{quote(filename, safe="/")}"
+        url = f"{protocol}://{quote(username, safe='')}:{quote(password, safe='')}@{ip}:{port}/{quote(filename, safe='/')}"
     else:
-        url = f"{protocol}://{ip}:{port}/{quote(filename, safe="/")}"
+        url = f"{protocol}://{ip}:{port}/{quote(filename, safe='/')}"
 
     if protocol == "smb":
         command_id = SMBDownloaderType(command_id)
@@ -83,9 +95,7 @@ def generate_download_command(
         elif command_id == DownloaderType.POWERSHELL:
             return f'''iwr "{url}" -OutFile "{target_path}"'''
         elif command_id == DownloaderType.BITSADMIN:
-            return (
-                f'''bitsadmin /transfer 1111 /download "{url}" "{target_path}"'''
-            )
+            return f'''bitsadmin /transfer 1111 /download "{url}" "{target_path}"'''
         elif command_id == DownloaderType.CERTUTIL:
             return f'''certutil.exe -urlcache -f "{url}" "{target_path}"'''
         else:
@@ -96,7 +106,7 @@ def generate_download_command(
             return f'''copy /-Y "{unc}" "{target_path}"'''
         elif command_id == SMBDownloaderType.COPY_ITEM:
             unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
-            return f'''Copy-Item '{unc}' '{target_path}' -Confirm'''
+            return f"""Copy-Item '{unc}' '{target_path}' -Confirm"""
         elif command_id == SMBDownloaderType.SMBGET:
             return f'''smbget -U "{username}%{password}" "{protocol}://{ip}:{port}/{quote(smb_share)}/{quote(filename, safe="/")}" -o "{target_path}" '''
     elif isinstance(command_id, FTPDownloaderType):
@@ -128,11 +138,12 @@ def get_network_interfaces() -> dict[str, str]:
 
     return interfaces
 
+
 def ip_formats(ip: str, ip_format: IPFormat = None) -> str:
     if not ip_format:
         return ip
 
-    n = int(ipaddress.IPv4Address(ip))      # validates and gives a 32-bit int
+    n = int(ipaddress.IPv4Address(ip))  # validates and gives a 32-bit int
     octets = ip.split(".")
 
     if ip_format == IPFormat.DECIMAL:

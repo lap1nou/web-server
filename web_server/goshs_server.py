@@ -1,15 +1,15 @@
 import json
 import os
-import tempfile
-import threading
 import queue
 import subprocess
+import tempfile
+import threading
+
 from web_server.config.config import ConfigGoshs
-from web_server.tui.utils import get_network_interfaces
 
 
 class GoshsServer:
-    def __init__(self, config: ConfigGoshs = None, og_config_file = None):
+    def __init__(self, config: ConfigGoshs = None, og_config_file=None):
         self.config = config
         self.og_config_file = og_config_file
         self.tmp_config_file = None
@@ -21,21 +21,21 @@ class GoshsServer:
 
         with open(self.og_config_file, "r") as og:
             goshs_tmp = json.load(og)
-            goshs_tmp['interface'] = self.config.interface
-            goshs_tmp['auth_password'] = self.config.password
-            goshs_tmp['port'] = self.config.http_port
-            goshs_tmp['directory'] = self.config.directory
-            goshs_tmp['read_only'] = self.config.read_only
+            goshs_tmp["interface"] = self.config.interface
+            goshs_tmp["auth_password"] = self.config.password
+            goshs_tmp["port"] = self.config.http_port
+            goshs_tmp["directory"] = self.config.directory
+            goshs_tmp["read_only"] = self.config.read_only
 
             if self.config.server_type == "FTP":
-                goshs_tmp['ftp'] = True
-                goshs_tmp['smb_server'] = False
+                goshs_tmp["ftp"] = True
+                goshs_tmp["smb_server"] = False
             elif self.config.server_type == "SMB":
-                goshs_tmp['smb_server'] = True
-                goshs_tmp['ftp'] = False
+                goshs_tmp["smb_server"] = True
+                goshs_tmp["ftp"] = False
             else:
-                goshs_tmp['smb_server'] = False
-                goshs_tmp['ftp'] = False
+                goshs_tmp["smb_server"] = False
+                goshs_tmp["ftp"] = False
 
         if self.config:
             with tempfile.NamedTemporaryFile(

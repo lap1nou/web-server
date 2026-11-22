@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
-from textual.widgets import Button, Static
 from textual.containers import Horizontal
+from textual.widgets import Button, Static
 
 ID_CONFIRM_BUTTON = "confirm_button"
 ID_CANCEL_BUTTON = "cancel_button"

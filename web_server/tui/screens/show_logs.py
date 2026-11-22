@@ -1,7 +1,8 @@
-from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.widgets import Button, RichLog
 from textual.containers import Container, Horizontal
+from textual.screen import ModalScreen
+from textual.widgets import Button, RichLog
+
 from web_server.tui.widgets.action_buttons import (
     ID_ACTIONS_HORIZONTAL,
     ID_CANCEL_BUTTON,

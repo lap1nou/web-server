@@ -1,9 +1,10 @@
 from textual.app import ComposeResult
-from textual.validation import Number
-from textual.widgets import Button, Checkbox, Select, Static
 from textual.containers import (
     HorizontalGroup,
 )
+from textual.validation import Number
+from textual.widgets import Button, Checkbox, Select, Static
+
 from web_server.config.config import ConfigGoshs
 from web_server.tui.utils import MAX_PORT, MIN_PORT, IPFormat, get_network_interfaces
 from web_server.tui.widgets.bordered_input import BorderedInput
@@ -17,6 +18,7 @@ SELECT_IP_FORMAT = "select_ip_format"
 BUTTON_BROWSE_FILE = "button_browse_file"
 BUTTON_SHOW_PASSWORD = "button_show_password"
 CHECKBOX_READ_ONLY = "checkbox_read_only"
+
 
 class GoshsForm(Static):
     def __init__(self, id: str = None, config: ConfigGoshs = None):
@@ -45,10 +47,13 @@ class GoshsForm(Static):
             value=self.config.password,
             password=True,
         )
-        button_show_password = Button("👁️‍🗨️", id=BUTTON_SHOW_PASSWORD,)
+        button_show_password = Button(
+            "👁️‍🗨️",
+            id=BUTTON_SHOW_PASSWORD,
+        )
         select_type = Select(
             prompt="Server type",
-            options=[("HTTPS", "HTTPS"),("SMB", "SMB"),("FTP", "FTP")],
+            options=[("HTTPS", "HTTPS"), ("SMB", "SMB"), ("FTP", "FTP")],
             id=SELECT_SERVER_TYPE,
         )
 
@@ -59,7 +64,7 @@ class GoshsForm(Static):
             yield Select(
                 allow_blank=False,
                 prompt="Listening interface",
-                options= [(k, v) for k,v in get_network_interfaces().items()],
+                options=[(k, v) for k, v in get_network_interfaces().items()],
                 id=SELECT_INTERFACE,
                 value="127.0.0.1",
             )
@@ -68,7 +73,10 @@ class GoshsForm(Static):
             yield input_password
             yield button_show_password
         with HorizontalGroup(id="das"):
-            yield Select([(ip_format.name, ip_format.value)
-                                    for ip_format in IPFormat], prompt="IP format", id=SELECT_IP_FORMAT)
+            yield Select(
+                [(ip_format.name, ip_format.value) for ip_format in IPFormat],
+                prompt="IP format",
+                id=SELECT_IP_FORMAT,
+            )
             yield Checkbox("RO", tooltip="Read only", id=CHECKBOX_READ_ONLY)
         yield select_type

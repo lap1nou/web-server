@@ -1,7 +1,7 @@
-from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.widgets import Static, DirectoryTree, Button, Input
 from textual.containers import Container
+from textual.screen import ModalScreen
+from textual.widgets import Button, DirectoryTree, Input, Static
 
 from web_server.tui.widgets.action_buttons import ID_CONFIRM_BUTTON, ActionButtons
 
