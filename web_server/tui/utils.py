@@ -1,13 +1,12 @@
 from enum import Enum
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from socket import AddressFamily
 import pyperclip
 import subprocess
 import platform
 import psutil
 import ipaddress
-
-import urllib
+from urllib.parse import quote
 
 MIN_PORT = 1
 MAX_PORT = 65535
@@ -23,7 +22,8 @@ class DownloaderType(Enum):
 
 class SMBDownloaderType(Enum):
     COPY = 1
-    SMBGET = 2
+    COPY_ITEM = 2
+    SMBGET = 3
 
 class FTPDownloaderType(Enum):
     CURL = 1
@@ -59,16 +59,16 @@ def copy_in_clipboard(input: str):
 def generate_download_command(
     command_id: int, protocol:str, ip: str, port: int, username: str, password: str, filename: str, smb_share: str
 ) -> str:
-    target_path = Path(filename).name
+    target_path = PurePosixPath(filename).name
 
     if password:
-        url = f"{protocol}://{urllib.quote(username)}:{urllib.quote(password)}@{ip}:{port}/{urllib.quote(filename)}"
+        url = f"{protocol}://{quote(username, safe="")}:{quote(password, safe="")}@{ip}:{port}/{quote(filename, safe="/")}"
     else:
-        url = f"{protocol}://{ip}:{port}/{urllib.quote(filename)}"
+        url = f"{protocol}://{ip}:{port}/{quote(filename, safe="/")}"
 
-    if protocol == "SMB":
+    if protocol == "smb":
         command_id = SMBDownloaderType(command_id)
-    elif protocol == "FTP":
+    elif protocol == "ftp":
         command_id = FTPDownloaderType(command_id)
     else:
         command_id = DownloaderType(command_id)
@@ -92,11 +92,15 @@ def generate_download_command(
             return ""
     elif isinstance(command_id, SMBDownloaderType):
         if command_id == SMBDownloaderType.COPY:
-            return f'''copy \\\\{ip}\\{smb_share}\\{urllib.quote(filename)} "{target_path}"'''
+            unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
+            return f'''copy /-Y {unc} "{target_path}"'''
+        elif command_id == SMBDownloaderType.COPY_ITEM:
+            unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
+            return f'''Copy-Item {unc} "{target_path}" -Confirm'''
         elif command_id == SMBDownloaderType.SMBGET:
-            return f'''smbget -U "{username}:{password}" "{protocol}://{ip}/{urllib.quote(smb_share)}/{urllib.quote(filename)}" -o "{target_path}" '''
+            return f'''smbget -U "{username}:{password}" "{protocol}://{ip}/{quote(smb_share)}/{quote(filename, safe="/")}" -o "{target_path}" '''
     elif isinstance(command_id, FTPDownloaderType):
-        return f'''curl -u "{username}:{password}" "{protocol}://{ip}/{urllib.quote(filename)}" -o "{target_path}"'''
+        return f'''curl -u "{username}:{password}" "{protocol}://{ip}/{quote(filename, safe="/")}" -o "{target_path}"'''
     else:
         return ""
 
@@ -124,22 +128,22 @@ def get_network_interfaces() -> dict[str, str]:
 
     return interfaces
 
-def ip_formats(ip: str, format: IPFormat = None) -> dict[str, str]:
-    if not format:
+def ip_formats(ip: str, ip_format: IPFormat = None) -> str:
+    if not ip_format:
         return ip
 
     n = int(ipaddress.IPv4Address(ip))      # validates and gives a 32-bit int
     octets = ip.split(".")
 
-    if format == IPFormat.DECIMAL:
+    if ip_format == IPFormat.DECIMAL:
         result = str(n)
-    elif format == IPFormat.OCTAL:
+    elif ip_format == IPFormat.OCTAL:
         result = hex(n)
-    elif format == IPFormat.HEX:
+    elif ip_format == IPFormat.HEX:
         result = "0" + format(n, "o")
-    elif format == IPFormat.DOTTED_OCTAL:
+    elif ip_format == IPFormat.DOTTED_OCTAL:
         result = ".".join(f"0x{int(o):02x}" for o in octets)
-    elif format == IPFormat.DOTTED_HEX:
+    elif ip_format == IPFormat.DOTTED_HEX:
         result = ".".join(f"0{int(o):o}" for o in octets)
 
     return result

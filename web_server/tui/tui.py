@@ -262,7 +262,6 @@ class TUI(App):
                     ])
             elif server_type == "FTP":
                 self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.ftp_port)
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.http_port)
                 self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options([
                     (downloader_type.name, downloader_type.value)
                     for downloader_type in FTPDownloaderType
@@ -312,6 +311,7 @@ class TUI(App):
         self.query_one(f"#{INPUT_PASSWORD}", Input).value = self.selected_config.password
         self.query_one(f"#{SELECT_INTERFACE}", Select).value = get_network_interfaces().get(self.selected_config.interface, "127.0.0.1")
         self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value = self.selected_config.server_type
+        self.query_one(f"#{CHECKBOX_READ_ONLY}", Checkbox).value = self.selected_config.read_only
 
         if self.selected_config.server_type == "SMB":
             self.query_one(f"#{INPUT_PORT}", Input).value = str(self.selected_config.smb_port)
@@ -328,4 +328,5 @@ class TUI(App):
         self.exit()
 
     def action_cheatsheet(self) -> None:
-        self.push_screen(CheatsheetScreen(get_network_interfaces().get(self.selected_config.interface, "127.0.0.1"), self.selected_config.smb_share, self.selected_config.username, self.selected_config.password))
+        if self.selected_config:
+            self.push_screen(CheatsheetScreen(get_network_interfaces().get(self.selected_config.interface, "127.0.0.1"), self.selected_config.smb_share, self.selected_config.username, self.selected_config.password))
