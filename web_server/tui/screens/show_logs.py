@@ -31,7 +31,7 @@ class ShowLogsScreen(ModalScreen):
             )
 
     def on_mount(self):
-        self.set_interval(2, self.update_richlog)
+        self.set_interval(1, self.update_richlog)
 
     def update_richlog(self):
         richlog = self.query_one(RichLog)
