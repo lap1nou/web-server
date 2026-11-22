@@ -22,7 +22,7 @@ from textual.containers import (
 )
 from web_server.config import config
 from web_server.config.config import (
-    AppConfig,
+    CONFIG_FOLDER,
     ConfigGoshs,
     load_config_from_json,
 )
@@ -43,6 +43,7 @@ from web_server.tui.widgets.double_click_optionlist import DoubleClickOptionList
 from web_server.tui.widgets.goshs_form import SELECT_SERVER_TYPE, GoshsForm, BUTTON_SHOW_PASSWORD, INPUT_PASSWORD
 from textual.keys import Keys
 from textual.binding import Binding
+import urllib.parse
 
 IS_SERVER_RUNNING = False
 
@@ -67,14 +68,12 @@ class TUI(App):
     ]
     ENABLE_COMMAND_PALETTE = False
 
-    def __init__(self, args, config):
+    def __init__(self):
         self.CSS_PATH = "css/general.tcss"
         super().__init__()
-        self.args = args
         self.title = f"🕸️ Web server v{importlib.metadata.version('web_server')}"
         self.webserver = None
         self.selected_config = None
-        self.config = config
         self.interfaces = get_network_interfaces()
 
     def compose(self) -> ComposeResult:
@@ -89,7 +88,7 @@ class TUI(App):
 
         select_profile = Select(
             prompt="Profile",
-            options=[(key.name, key.name) for key in list(pathlib.Path(AppConfig.CONFIG_FOLDER).glob("*.json"))],
+            options=[(key.name, key.name) for key in list(pathlib.Path(CONFIG_FOLDER).glob("*.json"))],
             id=SELECT_PROFILE,
         )
 
@@ -122,17 +121,6 @@ class TUI(App):
         yield Input(placeholder="🔍 Search...", id=INPUT_SEARCH_BAR)
         yield Footer()
 
-    def on_mount(self) -> None:
-        #if self.args.profile:
-        #    try:
-        #        select_profile = self.screen.query_one(f"#{SELECT_PROFILE}", Select)
-        #        select_profile.value = self.args.profile
-        #    except Exception:
-        #        pass
-
-        if self.args.auto:
-            switch_webserver = self.screen.query_one(Switch)
-            switch_webserver.toggle()
 
     async def on_switch_changed(self, event: Switch.Changed):
         global IS_SERVER_RUNNING
@@ -158,13 +146,19 @@ class TUI(App):
             #return
 
         if not IS_SERVER_RUNNING:
-            og = AppConfig.CONFIG_FOLDER / self.screen.query_one(f"#{SELECT_PROFILE}", Select).value
+            og = CONFIG_FOLDER / self.screen.query_one(f"#{SELECT_PROFILE}", Select).value
 
             self.selected_config.directory = self.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value
-            self.selected_config.port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
             self.selected_config.password = self.query_one(f"#{INPUT_PASSWORD}", Input).value
             self.selected_config.interface = self.query_one(f"#{SELECT_INTERFACE}", Select).value
             self.selected_config.server_type = self.query_one(f"#{SELECT_SERVER_TYPE}", Select).value
+
+            if self.selected_config.server_type == "SMB":
+                self.selected_config.smb_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
+            elif self.selected_config.server_type == "FTP":
+                self.selected_config.ftp_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
+            else:
+                self.selected_config.http_port = int(self.query_one(f"#{INPUT_PORT}", Input).value)
 
             self.webserver = GoshsServer(
                 self.selected_config, og
@@ -178,32 +172,35 @@ class TUI(App):
                 f"Web server started on {interface}:{port}!",
                 severity="information",
             )
+
+            IS_SERVER_RUNNING = event.value
         else:
             self.webserver.stop()
             web_directory_optionlist.clear_options()
             self.notify("Web server stoped !", severity="warning")
 
-        IS_SERVER_RUNNING = event.value
 
     @on(OptionList.OptionSelected)
     def on_path_selected(self, event: OptionList.OptionSelected):
         command_id = self.screen.query_one(f"#{SELECT_COMMAND_ID}", Select)
         ip = self.screen.query_one(f"#{SELECT_INTERFACE}").value
         port = self.screen.query_one(f"#{INPUT_PORT}").value
-        password = self.screen.query_one(f"#{INPUT_PASSWORD}").value
-        username = self.selected_config.username
+        password = urllib.parse.quote_plus(self.screen.query_one(f"#{INPUT_PASSWORD}").value)
+        username = urllib.parse.quote_plus(self.selected_config.username)
+        filename = urllib.parse.quote_plus(event.option.prompt)
+        protocol = self.screen.query_one(f"#{SELECT_SERVER_TYPE}").value
 
         if password:
-            web_path = f"https://{username}:{password}@{ip}:{port}/{event.option.prompt}"
+            web_path = f"https://{username}:{password}@{ip}:{port}/{filename}"
         else:
-            web_path = f"https://{ip}:{port}/{event.option.prompt}"
+            web_path = f"https://{ip}:{port}/{filename}"
 
         if command_id.is_blank():
             return
 
         copy_in_clipboard(
             generate_download_command(
-                DownloaderType(command_id.value), web_path, event.option.prompt
+                DownloaderType(command_id.value), web_path, filename
             )
         )
         self.notify("Path copied to the clipboard !", severity="information")
@@ -220,7 +217,7 @@ class TUI(App):
 
         if event.value:
             web_directory_optionlist.add_options(
-                get_files_list(web_directory, search=event.value)
+                get_files_list(web_directory, search=f"*{event.value}*")
             )
         else:
             web_directory_optionlist.add_options(get_files_list(web_directory))
@@ -244,7 +241,7 @@ class TUI(App):
     async def on_select_changed(self, event: Select.Changed):
         if event.select.id == SELECT_PROFILE and event.select.selection:
             await self.select_profile(event)
-        elif event.select.id == SELECT_SERVER_TYPE:
+        elif event.select.id == SELECT_SERVER_TYPE and self.selected_config:
             server_type = event.select.selection
 
             if server_type == "SMB":

@@ -31,5 +31,5 @@ class OpenFileScreen(ModalScreen):
         self.screen.query_one(f"#{ID_PATH_INPUT}", Input).value = f"{event.path}"
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id in ID_CONFIRM_BUTTON:
+        if event.button.id == ID_CONFIRM_BUTTON:
             self.screen.dismiss(self.screen.query_one(f"#{ID_PATH_INPUT}", Input).value)
