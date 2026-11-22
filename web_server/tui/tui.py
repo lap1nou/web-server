@@ -178,6 +178,7 @@ class TUI(App):
             self.webserver.stop()
             web_directory_optionlist.clear_options()
             self.notify("Web server stoped !", severity="warning")
+            IS_SERVER_RUNNING = event.value
 
 
     @on(OptionList.OptionSelected)
@@ -185,9 +186,9 @@ class TUI(App):
         command_id = self.screen.query_one(f"#{SELECT_COMMAND_ID}", Select)
         ip = self.screen.query_one(f"#{SELECT_INTERFACE}").value
         port = self.screen.query_one(f"#{INPUT_PORT}").value
-        password = urllib.parse.quote_plus(self.screen.query_one(f"#{INPUT_PASSWORD}").value)
-        username = urllib.parse.quote_plus(self.selected_config.username)
-        filename = urllib.parse.quote_plus(event.option.prompt)
+        password = urllib.parse.quote(self.screen.query_one(f"#{INPUT_PASSWORD}").value)
+        username = urllib.parse.quote(self.selected_config.username)
+        filename = urllib.parse.quote(event.option.prompt)
         protocol = self.screen.query_one(f"#{SELECT_SERVER_TYPE}").value
 
         if password:
