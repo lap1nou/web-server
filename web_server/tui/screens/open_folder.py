@@ -29,8 +29,8 @@ class OpenFileScreen(ModalScreen):
     def on_directory_tree_directory_selected(
         self, event: DirectoryTree.DirectorySelected
     ) -> None:
-        self.screen.query_one(f"#{ID_PATH_INPUT}", Input).value = f"{event.path}"
+        self.query_one(f"#{ID_PATH_INPUT}", Input).value = f"{event.path}"
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == ID_CONFIRM_BUTTON:
-            self.screen.dismiss(self.screen.query_one(f"#{ID_PATH_INPUT}", Input).value)
+            self.dismiss(self.query_one(f"#{ID_PATH_INPUT}", Input).value)

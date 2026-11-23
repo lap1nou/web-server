@@ -152,9 +152,6 @@ class TUI(App):
         except Exception:
             pass
 
-        # if self.is_profile_valid(port, None, web_directory):
-        # return
-
         if not IS_SERVER_RUNNING:
             og = (
                 CONFIG_FOLDER
@@ -264,12 +261,12 @@ class TUI(App):
             def select_web_directory(path: str):
                 self.screen.query_one(f"#{INPUT_WEB_DIRECTORY}", Input).value = path
 
-            self.app.push_screen(
+            self.push_screen(
                 OpenFileScreen("Choose a directory to serve files from:"),
                 select_web_directory,
             )
         elif event.button.id == BUTTON_SHOW_LOGS and self.webserver:
-            self.app.push_screen(ShowLogsScreen(self.webserver))
+            self.push_screen(ShowLogsScreen(self.webserver))
         elif event.button.id == BUTTON_SHOW_PASSWORD:
             password_input = self.screen.query_one(f"#{INPUT_PASSWORD}", Input)
             password_input.password = not password_input.password

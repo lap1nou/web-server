@@ -68,13 +68,13 @@ class CheatsheetScreen(ModalScreen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == ID_BUTTON_CLOSE:
-            self.screen.dismiss()
+            self.dismiss()
         elif event.button.id == ID_BUTTON_COPY_1:
             utils.copy_in_clipboard(self.cmd_smb_mount)
-            self.screen.dismiss()
+            self.dismiss()
         elif event.button.id == ID_BUTTON_COPY_2:
             utils.copy_in_clipboard(self.cmd_smb_mount_delete)
-            self.screen.dismiss()
+            self.dismiss()
         elif event.button.id == ID_BUTTON_COPY_3:
             utils.copy_in_clipboard(self.cmd_upload)
-            self.screen.dismiss()
+            self.dismiss()

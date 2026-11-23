@@ -78,7 +78,7 @@ class GoshsForm(Static):
         with HorizontalGroup():
             yield input_password
             yield button_show_password
-        with HorizontalGroup(id="das"):
+        with HorizontalGroup():
             yield Select(
                 [(ip_format.name, ip_format.value) for ip_format in IPFormat],
                 prompt="IP format",

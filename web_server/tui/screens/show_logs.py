@@ -13,9 +13,8 @@ BUTTON_REFRESH = "button_refresh"
 
 
 class ShowLogsScreen(ModalScreen):
-    def __init__(self, server, message: str = ""):
+    def __init__(self, server):
         super().__init__()
-        self.message = message
         self.server = server
 
     def compose(self) -> ComposeResult:

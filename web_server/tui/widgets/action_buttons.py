@@ -1,13 +1,14 @@
 from textual.app import ComposeResult
-from textual.containers import Horizontal
-from textual.widgets import Button, Static
+from textual.containers import Horizontal, HorizontalGroup
+from textual.widget import Widget
+from textual.widgets import Button
 
 ID_CONFIRM_BUTTON = "confirm_button"
 ID_CANCEL_BUTTON = "cancel_button"
 ID_ACTIONS_HORIZONTAL = "actions_horizontal"
 
 
-class ActionButtons(Static):
+class ActionButtons(HorizontalGroup):
     def __init__(
         self,
         confirm_button_id: str = ID_CONFIRM_BUTTON,
