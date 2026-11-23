@@ -25,11 +25,7 @@ from textual.widgets import (
     Switch,
 )
 
-from web_server.config.config import (
-    CONFIG_FOLDER,
-    ConfigGoshs,
-    load_config_from_json,
-)
+from web_server.config.config import CONFIG_FOLDER, ConfigGoshs
 from web_server.goshs_server import GoshsServer
 from web_server.tui.screens.cheatsheet import CheatsheetScreen
 from web_server.tui.screens.open_folder import OpenFileScreen
@@ -345,7 +341,7 @@ class TUI(App):
         return True
 
     async def select_profile(self, event: Select.Changed):
-        self.selected_config = load_config_from_json(event.select.selection)
+        self.selected_config = ConfigGoshs.from_file(event.select.selection)
 
         self.query_one(
             f"#{INPUT_WEB_DIRECTORY}", Input

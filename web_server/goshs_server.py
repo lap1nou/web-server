@@ -21,24 +21,7 @@ class GoshsServer:
         command_line = ["goshs"]
 
         with open(self.og_config_file, "r") as og:
-            goshs_tmp = json.load(og)
-            goshs_tmp["interface"] = self.config.interface
-            goshs_tmp["auth_password"] = self.config.password
-            goshs_tmp["port"] = self.config.http_port
-            goshs_tmp["directory"] = self.config.directory
-            goshs_tmp["read_only"] = self.config.read_only
-
-            if self.config.server_type == "FTP":
-                goshs_tmp["ftp"] = True
-                goshs_tmp["smb_server"] = False
-                goshs_tmp["http_server"] = False
-            elif self.config.server_type == "SMB":
-                goshs_tmp["smb_server"] = True
-                goshs_tmp["ftp"] = False
-                goshs_tmp["http_server"] = False
-            else:
-                goshs_tmp["smb_server"] = False
-                goshs_tmp["ftp"] = False
+            goshs_tmp = self.config.apply_to(json.load(og))
 
         if self.config:
             with tempfile.NamedTemporaryFile(
