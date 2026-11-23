@@ -87,7 +87,7 @@ def generate_download_command(
 
     if isinstance(command_id, DownloaderType):
         if command_id == DownloaderType.CURL:
-            return f'''curl "{url}" -o "{target_path}"'''
+            return f'''curl -k "{url}" -o "{target_path}"'''
         elif command_id == DownloaderType.WGET:
             return f'''wget "{url}" -O "{target_path}"'''
         elif command_id == DownloaderType.PYTHON:

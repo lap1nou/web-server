@@ -4,6 +4,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, DirectoryTree, Input, Static
 
 from web_server.tui.widgets.action_buttons import ID_CONFIRM_BUTTON, ActionButtons
+from web_server.tui.widgets.navigable_directory_tree import NavigableDirectoryTree
 
 ID_PATH_INPUT = "select_path_input"
 
@@ -21,7 +22,7 @@ class OpenFileScreen(ModalScreen):
                 self.message,
                 id="question",
             )
-            yield DirectoryTree("/", id="directory_tree")
+            yield NavigableDirectoryTree(id="directory_tree")
             yield Input(placeholder="Selected path...", id=ID_PATH_INPUT)
             yield ActionButtons()
 

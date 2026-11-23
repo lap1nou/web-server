@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from textual.app import ComposeResult
 from textual.containers import Center, Container, HorizontalGroup
 from textual.screen import ModalScreen
@@ -11,26 +13,29 @@ HORIZONTAL_GROUP_SERVER_CONFIG = "horizontal_group_server_config"
 ID_BUTTON_CLOSE = "button_close"
 ID_BUTTON_COPY_1 = "button_copy_1"
 ID_BUTTON_COPY_2 = "button_copy_2"
-SMB_MOUNT = ""
-SMB_MOUNT_DELETE = ""
+ID_BUTTON_COPY_3 = "button_copy_3"
 
 
 class CheatsheetScreen(ModalScreen):
     def __init__(
-        self, ip: str = "", smb_share: str = "", username: str = "", password: str = ""
+        self,
+        ip: str = "",
+        port: int = 443,
+        smb_share: str = "",
+        username: str = "",
+        password: str = "",
     ):
         super().__init__()
         self.ip = ip
+        self.port = port
         self.smb_share = smb_share
         self.username = username
         self.password = password
         self.cmd_smb_mount = f'net use "\\\\{self.ip}\\{self.smb_share}" /user:"{self.username}" "{self.password}"'
         self.cmd_smb_mount_delete = f'net use "\\\\{self.ip}\\{self.smb_share}" /delete'
+        self.cmd_upload = f'curl -k -T "$FILENAME" "https://{quote(self.username, safe="")}:{quote(self.password, safe="")}@{self.ip}:{self.port}/"'
 
     def compose(self) -> ComposeResult:
-        global SMB_MOUNT
-        global SMB_MOUNT_DELETE
-
         container = Container()
         container.border_title = "📚 Cheatsheet"
         SMB_MOUNT = f"""
@@ -43,6 +48,11 @@ class CheatsheetScreen(ModalScreen):
 {self.cmd_smb_mount_delete}
 ```
         """
+        UPLOAD = f"""
+```bat
+{self.cmd_upload}
+```
+        """
         with container:
             with HorizontalGroup(id=HORIZONTAL_GROUP_SERVER_CONFIG):
                 yield Markdown(SMB_MOUNT)
@@ -50,6 +60,9 @@ class CheatsheetScreen(ModalScreen):
             with HorizontalGroup():
                 yield Markdown(SMB_MOUNT_DELETE)
                 yield Button("📃", id=ID_BUTTON_COPY_2)
+            with HorizontalGroup():
+                yield Markdown(UPLOAD)
+                yield Button("📃", id=ID_BUTTON_COPY_3)
             with Center():
                 yield Button("Close", variant="error", id=ID_BUTTON_CLOSE)
 
@@ -61,4 +74,7 @@ class CheatsheetScreen(ModalScreen):
             self.screen.dismiss()
         elif event.button.id == ID_BUTTON_COPY_2:
             utils.copy_in_clipboard(self.cmd_smb_mount_delete)
+            self.screen.dismiss()
+        elif event.button.id == ID_BUTTON_COPY_3:
+            utils.copy_in_clipboard(self.cmd_upload)
             self.screen.dismiss()

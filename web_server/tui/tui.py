@@ -386,13 +386,15 @@ class TUI(App):
 
     def action_cheatsheet(self) -> None:
         if self.selected_config:
+            interface = self.query_one(f"#{SELECT_INTERFACE}", Select).value
+            http_port = self.query_one(f"#{INPUT_PORT}", Input).value
+            password = self.query_one(f"#{INPUT_PASSWORD}", Input).value
             self.push_screen(
                 CheatsheetScreen(
-                    get_network_interfaces().get(
-                        self.selected_config.interface, "127.0.0.1"
-                    ),
+                    interface,
+                    http_port,
                     self.selected_config.smb_share,
                     self.selected_config.username,
-                    self.selected_config.password,
+                    password,
                 )
             )

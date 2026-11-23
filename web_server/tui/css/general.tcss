@@ -121,4 +121,9 @@ Markdown MarkdownFence {
     min-width: 0;
     width: auto;
 }
+
+#button_copy_3 {
+    min-width: 0;
+    width: auto;
+}
 /* SMB copy command end */

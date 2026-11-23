@@ -31,9 +31,11 @@ class GoshsServer:
             if self.config.server_type == "FTP":
                 goshs_tmp["ftp"] = True
                 goshs_tmp["smb_server"] = False
+                goshs_tmp["http_server"] = False
             elif self.config.server_type == "SMB":
                 goshs_tmp["smb_server"] = True
                 goshs_tmp["ftp"] = False
+                goshs_tmp["http_server"] = False
             else:
                 goshs_tmp["smb_server"] = False
                 goshs_tmp["ftp"] = False
