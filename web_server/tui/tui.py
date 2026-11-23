@@ -278,35 +278,27 @@ class TUI(App):
             server_type = event.select.selection
 
             if server_type == "SMB":
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(
-                    self.selected_config.smb_port
-                )
-                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(
-                    [
-                        (downloader_type.name, downloader_type.value)
-                        for downloader_type in SMBDownloaderType
-                    ]
-                )
+                port = self.selected_config.smb_port
+                options = [
+                    (downloader_type.name, downloader_type.value)
+                    for downloader_type in SMBDownloaderType
+                ]
             elif server_type == "FTP":
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(
-                    self.selected_config.ftp_port
-                )
-                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(
-                    [
-                        (downloader_type.name, downloader_type.value)
-                        for downloader_type in FTPDownloaderType
-                    ]
-                )
+                port = self.selected_config.ftp_port
+                options = [
+                    (downloader_type.name, downloader_type.value)
+                    for downloader_type in FTPDownloaderType
+                ]
             else:
-                self.query_one(f"#{INPUT_PORT}", Input).value = str(
-                    self.selected_config.http_port
-                )
-                self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(
-                    [
-                        (downloader_type.name, downloader_type.value)
-                        for downloader_type in DownloaderType
-                    ]
-                )
+                port = self.selected_config.http_port
+                options = [
+                    (downloader_type.name, downloader_type.value)
+                    for downloader_type in DownloaderType
+                ]
+
+            self.query_one(f"#{INPUT_PORT}", Input).value = str(port)
+            self.query_one(f"#{SELECT_COMMAND_ID}", Select).set_options(options)
+
 
     # Check wether the profile is valid
     def is_profile_valid(

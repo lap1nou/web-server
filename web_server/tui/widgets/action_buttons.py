@@ -1,6 +1,5 @@
 from textual.app import ComposeResult
 from textual.containers import Horizontal, HorizontalGroup
-from textual.widget import Widget
 from textual.widgets import Button
 
 ID_CONFIRM_BUTTON = "confirm_button"
