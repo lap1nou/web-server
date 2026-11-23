@@ -58,9 +58,34 @@ def copy_in_clipboard(input: str):
     pyperclip.copy(input)
 
 
+# Which enum the command id belongs to, per protocol (anything else is HTTP(S)).
+DOWNLOADER_TYPES = {"smb": SMBDownloaderType, "ftp": FTPDownloaderType}
+
+# One template per command. Placeholders:
+#   {url}       HTTP(S) URL, with user:password@ only when a password is set
+#   {ftp_url}   FTP URL, always with user:password@
+#   {smb_url}   smb://ip:port/share/path, for smbget
+#   {unc}       \\ip\share\path, for Windows
+#   {out}       local file name to save as
+#   {username}, {password}
+#
 # References:
 # - https://lolbas-project.github.io/#
 # - https://github.com/ShutdownRepo/uberfile
+COMMAND_TEMPLATES = {
+    DownloaderType.CURL: 'curl -k "{url}" -o "{out}"',
+    DownloaderType.WGET: 'wget "{url}" -O "{out}"',
+    DownloaderType.PYTHON: "python -c \"import urllib.request; urllib.request.urlretrieve('{url}', '{out}')\"",
+    DownloaderType.POWERSHELL: 'iwr "{url}" -OutFile "{out}"',
+    DownloaderType.BITSADMIN: 'bitsadmin /transfer 1111 /download "{url}" "{out}"',
+    DownloaderType.CERTUTIL: 'certutil.exe -urlcache -f "{url}" "{out}"',
+    SMBDownloaderType.COPY: 'copy /-Y "{unc}" "{out}"',
+    SMBDownloaderType.COPY_ITEM: "Copy-Item '{unc}' '{out}' -Confirm",
+    SMBDownloaderType.SMBGET: 'smbget -U "{username}%{password}" "{smb_url}" -o "{out}" ',
+    FTPDownloaderType.CURL: 'curl "{ftp_url}" -o "{out}"',
+}
+
+
 def generate_download_command(
     command_id: int,
     protocol: str,
@@ -71,48 +96,21 @@ def generate_download_command(
     filename: str,
     smb_share: str,
 ) -> str:
-    target_path = PurePosixPath(filename).name
+    command = DOWNLOADER_TYPES.get(protocol, DownloaderType)(command_id)
 
-    if password:
-        url = f"{protocol}://{quote(username, safe='')}:{quote(password, safe='')}@{ip}:{port}/{quote(filename, safe='/')}"
-    else:
-        url = f"{protocol}://{ip}:{port}/{quote(filename, safe='/')}"
+    path = quote(filename, safe="/")
+    credentials = f"{quote(username, safe='')}:{quote(password, safe='')}@"
+    base = f"{protocol}://{ip}:{port}"
 
-    if protocol == "smb":
-        command_id = SMBDownloaderType(command_id)
-    elif protocol == "ftp":
-        command_id = FTPDownloaderType(command_id)
-    else:
-        command_id = DownloaderType(command_id)
-
-    if isinstance(command_id, DownloaderType):
-        if command_id == DownloaderType.CURL:
-            return f'''curl -k "{url}" -o "{target_path}"'''
-        elif command_id == DownloaderType.WGET:
-            return f'''wget "{url}" -O "{target_path}"'''
-        elif command_id == DownloaderType.PYTHON:
-            return f'''python -c "import urllib.request; urllib.request.urlretrieve('{url}', '{target_path}')"'''
-        elif command_id == DownloaderType.POWERSHELL:
-            return f'''iwr "{url}" -OutFile "{target_path}"'''
-        elif command_id == DownloaderType.BITSADMIN:
-            return f'''bitsadmin /transfer 1111 /download "{url}" "{target_path}"'''
-        elif command_id == DownloaderType.CERTUTIL:
-            return f'''certutil.exe -urlcache -f "{url}" "{target_path}"'''
-        else:
-            return ""
-    elif isinstance(command_id, SMBDownloaderType):
-        if command_id == SMBDownloaderType.COPY:
-            unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
-            return f'''copy /-Y "{unc}" "{target_path}"'''
-        elif command_id == SMBDownloaderType.COPY_ITEM:
-            unc = "\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\")
-            return f"""Copy-Item '{unc}' '{target_path}' -Confirm"""
-        elif command_id == SMBDownloaderType.SMBGET:
-            return f'''smbget -U "{username}%{password}" "{protocol}://{ip}:{port}/{quote(smb_share)}/{quote(filename, safe="/")}" -o "{target_path}" '''
-    elif isinstance(command_id, FTPDownloaderType):
-        return f'''curl "{protocol}://{quote(username, safe="")}:{quote(password, safe="")}@{ip}:{port}/{quote(filename, safe="/")}" -o "{target_path}"'''
-    else:
-        return ""
+    return COMMAND_TEMPLATES.get(command, "").format(
+        url=f"{protocol}://{credentials if password else ''}{ip}:{port}/{path}",
+        ftp_url=f"{protocol}://{credentials}{ip}:{port}/{path}",
+        smb_url=f"{base}/{quote(smb_share)}/{path}",
+        unc="\\\\" + ip + "\\" + smb_share + "\\" + filename.replace("/", "\\"),
+        out=PurePosixPath(filename).name,
+        username=username,
+        password=password,
+    )
 
 
 def get_files_list(root: str, search: str = "*"):

@@ -6,7 +6,7 @@ from textual.validation import Number
 from textual.widgets import Button, Checkbox, Select, Static
 
 from web_server.config.config import ConfigGoshs
-from web_server.tui.utils import MAX_PORT, MIN_PORT, IPFormat, get_network_interfaces
+from web_server.tui.utils import MAX_PORT, MIN_PORT, IPFormat
 from web_server.tui.widgets.bordered_input import BorderedInput
 
 INPUT_PORT = "input_port"
@@ -21,7 +21,12 @@ CHECKBOX_READ_ONLY = "checkbox_read_only"
 
 
 class GoshsForm(Static):
-    def __init__(self, id: str = None, config: ConfigGoshs = None, interfaces: dict[str, str] = None):
+    def __init__(
+        self,
+        id: str = None,
+        config: ConfigGoshs = None,
+        interfaces: dict[str, str] = None,
+    ):
         super().__init__(id=id)
         self.config = config
         self.interfaces = interfaces

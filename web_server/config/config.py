@@ -42,7 +42,9 @@ class ConfigGoshs:
         """Build a config from a goshs JSON profile (missing keys get defaults)."""
         values = {}
         for attr, key in cls.JSON_KEYS.items():
-            default = cls.PROFILE_DEFAULTS.get(attr, cls.__dataclass_fields__[attr].default)
+            default = cls.PROFILE_DEFAULTS.get(
+                attr, cls.__dataclass_fields__[attr].default
+            )
             values[attr] = data.get(key, default)
 
         if data.get("smb_server", False):
