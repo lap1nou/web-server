@@ -120,7 +120,7 @@ class TUI(App):
                         yield switch_webserver
                         yield HorizontalGroup()
                         yield Button("🗒️", id=BUTTON_SHOW_LOGS, tooltip="Server logs")
-                    yield GoshsForm(SERVER_FORM, ConfigGoshs(directory=""))
+                    yield GoshsForm(SERVER_FORM, ConfigGoshs(directory=""), self.interfaces)
                 yield Select(
                     allow_blank=False,
                     prompt="Download command type",
@@ -386,9 +386,15 @@ class TUI(App):
 
     def action_cheatsheet(self) -> None:
         if self.selected_config:
-            interface = self.query_one(f"#{SELECT_INTERFACE}", Select).value
-            http_port = self.query_one(f"#{INPUT_PORT}", Input).value
-            password = self.query_one(f"#{INPUT_PASSWORD}", Input).value
+            interface = self.query_one(
+                f"#{SELECT_INTERFACE}", Select
+            ).value
+            http_port = self.query_one(
+                f"#{INPUT_PORT}", Input
+            ).value
+            password = self.query_one(
+                            f"#{INPUT_PASSWORD}", Input
+                        ).value
             self.push_screen(
                 CheatsheetScreen(
                     interface,

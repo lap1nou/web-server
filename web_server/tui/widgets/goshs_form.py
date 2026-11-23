@@ -21,9 +21,10 @@ CHECKBOX_READ_ONLY = "checkbox_read_only"
 
 
 class GoshsForm(Static):
-    def __init__(self, id: str = None, config: ConfigGoshs = None):
+    def __init__(self, id: str = None, config: ConfigGoshs = None, interfaces: dict[str, str] = None):
         super().__init__(id=id)
         self.config = config
+        self.interfaces = interfaces
 
     def compose(self) -> ComposeResult:
         input_web_directory = BorderedInput(
@@ -64,7 +65,7 @@ class GoshsForm(Static):
             yield Select(
                 allow_blank=False,
                 prompt="Listening interface",
-                options=[(k, v) for k, v in get_network_interfaces().items()],
+                options=[(k, v) for k, v in self.interfaces.items()],
                 id=SELECT_INTERFACE,
                 value="127.0.0.1",
             )
